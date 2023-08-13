@@ -1,0 +1,92 @@
+# import requests
+# from bs4 import BeautifulSoup
+
+# def scrape_trustpilot_reviews(url):
+#     response = requests.get(url)
+#     if response.status_code != 200:
+#         print(f"Failed to fetch the page from {url}")
+#         return None
+#     print(response.text)
+#     soup = BeautifulSoup(response.text, "html.parser")
+    
+#     reviews_data = []
+#     review_elements = soup.find_all("div", {"class": "review"})
+    
+#     for review in review_elements:
+#         review_text = review.find("p", {"class": "review-content__text"})
+#         rating = review.find("div", {"class": "star-rating"})
+#         date = review.find("div", {"class": "review-content-header__dates"})
+        
+#         if review_text and rating and date:
+#             review_data = {
+#                 "author": review.find("div", {"class": "consumer-information__name"}).text.strip(),
+#                 "datePublished": date.find("time").text.strip(),
+#                 "headline": review_text.find("span", {"class": "headline__review"}).text.strip(),
+#                 "reviewBody": review_text.find("span", {"class": "review-content__text--truncated"}).text.strip(),
+#                 "ratingValue": int(rating.attrs["class"][-1].split("-")[-1])
+#             }
+#             reviews_data.append(review_data)
+    
+#     return reviews_data
+
+# if __name__ == "__main__":
+#     url = "https://www.trustpilot.com/review/redtunashirtclub.com"
+#     reviews = scrape_trustpilot_reviews(url)
+#     if reviews:
+#         for idx, review in enumerate(reviews, start=1):
+#             print(f"Review {idx}:")
+#             print(f"Author: {review['author']}")
+#             print(f"Date Published: {review['datePublished']}")
+#             print(f"Headline: {review['headline']}")
+#             print(f"Review Body: {review['reviewBody']}")
+#             print(f"Rating: {review['ratingValue']}")
+#             print("=" * 50)
+#     else:
+#         print("No reviews were extracted.")
+
+
+import requests
+from bs4 import BeautifulSoup
+import json
+
+url = "https://www.trustpilot.com/review/aardy.com?"
+result = requests.get(url)
+soup = BeautifulSoup(result.content, "html.parser")
+reviews = soup.find_all('article', class_='review')
+
+allUsers = []
+allRatings = []
+allLocations = []
+allDates = []
+allReviewContent = []
+
+for review in reviews:
+    # Extract user's name
+    user_name = review.find('div', class_='consumer-information__name').text.strip()
+    allUsers.append(user_name)
+    
+    # Extract rating
+    ratings_data = json.loads(review.find('script', {'type': 'application/ld+json'}).text)
+    allRatings.append(ratings_data['reviewRating']['ratingValue'])
+    
+    # Extract location if available
+    location_element = review.find('div', class_='consumer-information__location')
+    location = location_element.span.text.strip() if location_element else ""
+    allLocations.append(location)
+    
+    # Extract review date
+    dates_data = json.loads(review.find('div', class_='review-content-header__dates')['data-initial-state'])
+    allDates.append(dates_data['publishedDate'])
+    
+    # Extract review content
+    review_content = review.find('div', class_='review-content__text').text.strip()
+    allReviewContent.append(review_content)
+    
+    # Print results
+    print(f"User: {user_name}")
+    print(f"Rating: {ratings_data['reviewRating']['ratingValue']}")
+    print(f"Location: {location}")
+    print(f"Date: {dates_data['publishedDate']}")
+    print(f"Review: {review_content}")
+    
+
