@@ -45,8 +45,7 @@ router.post('/add', requireAuth, async (req, res) => {
 
 router.post('/addReview', requireAuth, async (req, res) => {
     try {
-      const { review, id } = req.body;
-  
+      const { id, rating, review } = req.body;
       // Find the past trip by ID
       const pastTrip = await PastTrip.findById(id);
   
@@ -56,6 +55,7 @@ router.post('/addReview', requireAuth, async (req, res) => {
   
       // Add the review to the past trip
       pastTrip.review = review;
+      pastTrip.rating = rating;
   
       // Save the updated past trip
       await pastTrip.save();

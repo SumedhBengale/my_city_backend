@@ -60,11 +60,19 @@ router.post('/resource/:id', requireAuth, async (req, res) => {
             case 'wishlist':
                 resourceModel = Wishlist;
                 break;
+            case 'review':
+                resourceModel = PastTrip;
+                break;
             default:
+                console.log("Invalid resource type", typeOfResource)
                 return res.status(400).json({ message: 'Invalid resource type' });
         }
-
-        const resource = await resourceModel.findById(id);
+        let resource;
+        if (resourceModel === PastTrip) {
+            resource = await resourceModel.findById(id).populate('residenceId');
+        } else {
+        resource = await resourceModel.findById(id);
+        }
         let safeResource = resource;
         //If the resource is 'user' then remove password from the response
         switch (typeOfResource) {
@@ -77,7 +85,7 @@ router.post('/resource/:id', requireAuth, async (req, res) => {
         if (!resource) {
             return res.status(404).json({ message: `${typeOfResource} not found` });
         }
-
+        console.log(safeResource)
         return res.status(200).json({ resource:safeResource });
     } catch (error) {
         console.log(error);
@@ -208,6 +216,36 @@ router.post('/users', async (req, res) => {
         }
     });
 
+//Get the latest reviews from all the users
+router.post('/reviews', async (req, res) => {
+    try {
+        const { query, rating } = req.body;
+        console.log("Query",query)
+        console.log(rating)
+        let pastTrips;
+        if(rating === ''){
+            pastTrips = await PastTrip.find({
+                $and: [
+                    { review: { $regex: query, $options: 'i' } },
+                ],
+                }).populate('residenceId');
+        }else{
+            pastTrips = await PastTrip.find({
+                $and: [
+                    { review: { $regex: query, $options: 'i' } },
+                    { rating: rating },
+                ],
+                }).populate('residenceId');
+        }
+
+        res.json(pastTrips);
+        console.log(pastTrips)
+    } catch (error) {
+        console.error('Error searching for past trips:', error);
+        res.status(500).json({ error: 'Error searching for past trips' });
+    }
+});
+
 
 //Get all the wishlists for a user's id
 router.post('/wishlist', async (req, res) => {
@@ -223,6 +261,37 @@ router.post('/wishlist', async (req, res) => {
     } catch (error) {
         console.error('Error searching for wishlists:', error);
         res.status(500).json({ error: 'Error searching for wishlists' });
+    }
+});
+
+//Route to compare all upcoming trip's checkInDate and checkOutDate with the current date and if the current date is greater than the checkOutDate then move the upcoming trip to the past trip
+
+router.post('/upcomingTripsToPastTrips', async (req, res) => {
+    try {
+        // Perform the search query on the database
+        const upcomingTrips = await UpcomingTrip.find({});
+        console.log(upcomingTrips)
+        for (let i = 0; i < upcomingTrips.length; i++) {
+            const upcomingTrip = upcomingTrips[i];
+            const currentDate = new Date();
+            const checkOutDate = new Date(upcomingTrip.checkOutDate);
+            console.log(currentDate, checkOutDate)
+            if (currentDate > checkOutDate) {
+                console.log("Moving to past trips")
+                const pastTrip = new PastTrip({
+                    userId: upcomingTrip.userId,
+                    residenceId: upcomingTrip.residenceId,
+                    checkInDate: upcomingTrip.checkInDate,
+                    checkOutDate: upcomingTrip.checkOutDate,
+                });
+                await pastTrip.save();
+                await UpcomingTrip.findByIdAndDelete(upcomingTrip._id);
+            }
+        }
+        res.status(200).json({ message: 'Upcoming trips moved to past trips' });
+    } catch (error) {
+        console.error('Error moving upcoming trips to past trips:', error);
+        res.status(500).json({ error: 'Error moving upcoming trips to past trips' });
     }
 });
 

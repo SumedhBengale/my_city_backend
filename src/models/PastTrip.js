@@ -22,6 +22,11 @@ const pastTripSchema = new mongoose.Schema({
   review: {
     type: String,
   },
+  rating: {
+    type: Number,
+    min: 1,
+    max: 5,
+  }
 });
 
 module.exports = mongoose.model('PastTrip', pastTripSchema);

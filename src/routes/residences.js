@@ -1,11 +1,13 @@
 const express = require('express');
+var request = require('request');
+const axios = require('axios');
 const router = express.Router();
 const Residence = require('../models/Residence');
 const { requireAuth } = require('../middlewares/authMiddleware');
 const UpcomingTrip = require('../models/UpcomingTrip');
 const { addNotification } = require('../middlewares/notificationMiddleware');
 
-router.get('/getResidences', requireAuth, async (req, res) => {
+router.get('/getResidences', async (req, res) => {
   try {
     const { filterData } = req.query;
     const filter = {};
@@ -90,9 +92,49 @@ router.get('/getResidences', requireAuth, async (req, res) => {
 
     // Return the filtered residences to the frontend
     res.status(200).json({ residences: residences, status: 200 });
+
+    var options = {
+      'method': 'POST',
+      'url': 'https://open-api.guesty.com/oauth2/token',
+      'headers': {
+        'Accept': 'application/json',
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      form: {
+        'grant_type': 'client_credentials',
+        'scope': 'open-api',
+        'client_secret': process.env.GUESTY_CLIENT_SECRET,
+        'client_id': process.env.GUESTY_CLIENT_ID
+      }
+    };
+    request(options, function (error, response) {
+      if (error) throw new Error(error);
+      console.log(response.body);
+      const tokenData = JSON.parse(response.body);
+      res.status(200).json({ residences: tokenData, status: 200 });
+    });
+
+    // const accessToken = 'Bearer eyJraWQiOiI5QlNOaTU4WVdhY0g1X0VidkRlNHVtcFl1b09VMTVnTU1Oc3puWXVOZkNBIiwiYWxnIjoiUlMyNTYifQ.eyJ2ZXIiOjEsImp0aSI6IkFULmVhcnJWU1NFQ1FnRHMtQ2YwNFZzTzJ1VFpnY2dqVHZmVWR5dXNhdE9hVkEiLCJpc3MiOiJodHRwczovL2xvZ2luLmd1ZXN0eS5jb20vb2F1dGgyL2F1czFwOHFyaDUzQ2NRVEk5NWQ3IiwiYXVkIjoiaHR0cHM6Ly9vcGVuLWFwaS5ndWVzdHkuY29tIiwiaWF0IjoxNjkyMTkzOTM1LCJleHAiOjE2OTIyODAzMzUsImNpZCI6IjBvYWF0cWhtcmF6MTc1TWtDNWQ3Iiwic2NwIjpbIm9wZW4tYXBpIl0sInJlcXVlc3RlciI6IkVYVEVSTkFMIiwiYWNjb3VudElkIjoiNjJlYTRhMGIxYzViOGMwMDMyYTEwMTVlIiwic3ViIjoiMG9hYXRxaG1yYXoxNzVNa0M1ZDciLCJ1c2VyUm9sZXMiOlt7InJvbGVJZCI6eyJwZXJtaXNzaW9ucyI6WyJsaXN0aW5nLnZpZXdlciJdfX1dLCJyb2xlIjoidXNlciIsImlhbSI6InYzIiwibmFtZSI6Ik15IGNpdHkgcmVzaWRlbmNlIn0.NCYwbNJnWyXBwuTFmEnKPQXR4-cejn3SoTRrwQ22jCT12pn8G_erSoVpUA_hR7POTIPdN5nzRzoy8SUFaGx5Jwm_x2bV1tOpx4YcBxdjZXwu4lsSqacNR58lc6NnQIwDscMJbWLaKHlCdFV4j-JL_WL985XP3fOY4osIMBOQ_IaGdWyP_7sBB0L3PwYyrmaRxqYFk8iHhuNj86pI3BgmBOrSQ3VPR2NuMYSqBbly9C-ozTUhV60dkUiE_xLIGl1Y7xcqO3NL3-QYsLg0MKto1_3Mld9RVXXfnEgzxAq7kRBdhl8EuMUJ3sGQkQwU2UqatukcLwD4rrLpzEpbnU-nxA';
+    // const apiUrl = 'https://open-api.guesty.com/v1/listings'
+    
+    
+    // axios.get(apiUrl, {
+    //   headers: {
+    //     'Authorization': accessToken,
+    //     'Accept': 'application/json',
+    //   }
+    // }
+    //   )
+    //   .then(({ data }) => 
+    //     res.status(200).json({ residences: data.results, status: 200 })
+    //   )
+    //   .catch(err => {
+    //     console.error(err)
+    //     res.status(500).json({ message: 'Internal server error', error: err });
+    //   });
   } catch (error) {
     console.error('Error in getResidences:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({ message: 'Internal server error', error: error });
   }
 });
 
