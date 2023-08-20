@@ -8,6 +8,7 @@ const UpcomingTrip = require('../models/UpcomingTrip');
 const PastTrip = require('../models/PastTrip');
 const Wishlist = require('../models/Wishlist');
 const Residence = require('../models/Residence');
+const { fetchResidenceById } = require('../middlewares/guestyMiddleware');
 
 
 
@@ -17,7 +18,7 @@ router.post('/checkAdmin', async (req, res) => {
     const { token } = req.body;
     console.log(token)
     try {
-        if(!token) return res.status(400).json({ message: 'Missing Token' });
+        if(!token) return res.status(400).json({ message: 'Missing Token'});
         //Find the user by their token
         const jwt_User= jwt.verify(token, process.env.JWT_SECRET);
         //Get the user's type from the database
@@ -69,7 +70,11 @@ router.post('/resource/:id', requireAuth, async (req, res) => {
         }
         let resource;
         if (resourceModel === PastTrip) {
-            resource = await resourceModel.findById(id).populate('residenceId');
+            resource = await resourceModel.findById(id)
+            
+            const residence = await findResidenceById(resource.residenceId);
+            //place the residence in the residenceId field
+            resource.residenceId = residence;
         } else {
         resource = await resourceModel.findById(id);
         }
@@ -189,7 +194,11 @@ router.post('/users', async (req, res) => {
             console.log("Query",userId)
 
             // Find all the upcomingTrips of the user, and populate the residenceId field
-            const upcomingTrips = await UpcomingTrip.find({ userId }).populate('residenceId');
+            let upcomingTrips = await UpcomingTrip.find({ userId })
+            
+            const residence = await findResidenceById(upcomingTrips.residenceId);
+            //place the residence in the residenceId field
+            upcomingTrips.residenceId = residence;
             
             res.status(200).json(upcomingTrips);
             console.log(upcomingTrips)
@@ -206,7 +215,11 @@ router.post('/users', async (req, res) => {
             console.log("Query",userId)
 
             // Find all the pastTrips of the user, and populate the residenceId field
-            const pastTrips = await PastTrip.find({ userId }).populate('residenceId');
+            let pastTrips = await PastTrip.find({ userId })
+
+            const residence = await findResidenceById(pastTrips.residenceId);
+            //place the residence in the residenceId field
+            pastTrips.residenceId = residence;
 
             res.status(200).json(pastTrips);
             console.log(pastTrips)
@@ -228,14 +241,21 @@ router.post('/reviews', async (req, res) => {
                 $and: [
                     { review: { $regex: query, $options: 'i' } },
                 ],
-                }).populate('residenceId');
+                })
+                const residence = await findResidenceById(pastTrips.residenceId);
+                //place the residence in the residenceId field
+                pastTrips.residenceId = residence;
         }else{
             pastTrips = await PastTrip.find({
                 $and: [
                     { review: { $regex: query, $options: 'i' } },
                     { rating: rating },
                 ],
-                }).populate('residenceId');
+                })
+
+            const residence = await findResidenceById(pastTrips.residenceId);
+            //place the residence in the residenceId field
+            pastTrips.residenceId = residence;
         }
 
         res.json(pastTrips);
@@ -254,7 +274,11 @@ router.post('/wishlist', async (req, res) => {
         console.log("Query",userId)
 
         // Perform the search query on the database
-        const wishlists = await Wishlist.find({userId}).populate('wishlistItems.residenceId');
+        let wishlists = await Wishlist.find({userId})
+
+        const residence = await findResidenceById(wishlists.wishlistItems.residenceId);
+            //place the residence in the residenceId field
+            wishlists.residenceId = residence;
 
         res.json(wishlists);
         console.log(wishlists)

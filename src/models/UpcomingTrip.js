@@ -6,9 +6,8 @@ const upcomingTripSchema = new mongoose.Schema({
     ref: 'User',
     required: true,
   },
-  residenceId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Residence',
+  residence: {
+    type: Object,
     required: true,
   },
   checkInDate: {

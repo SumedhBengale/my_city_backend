@@ -21,13 +21,13 @@ router.post('/getPastTrips', requireAuth, async (req, res) => {
 // POST /api/add
 router.post('/add', requireAuth, async (req, res) => {
   try {
-    const {residenceId, checkInDate, checkOutDate } = req.body;
+    const {residence, checkInDate, checkOutDate } = req.body;
     const userId = req.user._id;
 
     // Create a new past trip
     const pastTrip = new PastTrip({
       userId,
-      residenceId,
+      residence,
       checkInDate,
       checkOutDate,
     });

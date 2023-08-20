@@ -22,13 +22,13 @@ router.post('/getUpcomingTrips', requireAuth, async (req, res) => {
 // POST /api/upcoming-trips
 router.post('/add', requireAuth, async (req, res) => {
   try {
-    const { residenceId, checkInDate, checkOutDate } = req.body;
+    const { residence, checkInDate, checkOutDate } = req.body;
     const { userId } = req.body;
 
     // Create a new upcoming trip
     const upcomingTrip = new UpcomingTrip({
       userId,
-      residenceId,
+      residence,
       checkInDate,
       checkOutDate,
     });
@@ -43,53 +43,6 @@ router.post('/add', requireAuth, async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 });
-
-//get all the upcoming trip's booked dates between checkInDate and checkOutDate for a residenceId
-router.post('/getBookedDates', requireAuth, async (req, res) => {
-
-  const getDatesBetweenDates = (startDate, endDate) => {
-    let dates = []
-    //to avoid modifying the original date
-    const theDate = new Date(startDate)
-    while (theDate < endDate) {
-      dates = [...dates, new Date(theDate)]
-      theDate.setDate(theDate.getDate() + 1)
-    }
-    dates = [...dates, endDate]
-    return dates
-  }
-
-
-  try {
-    const { residenceId } = req.body;
-    console.log("residenceId", residenceId)
-
-    // Find all upcoming trips of a residence
-    const upcomingTrips = await UpcomingTrip.find({ residenceId });
-
-    // Make a list of all the booked dates
-    let bookedDates = [];
-    upcomingTrips.forEach((upcomingTrip) => {
-      const { checkInDate, checkOutDate } = upcomingTrip;
-
-      // Get all the dates between checkInDate and checkOutDate
-      const dates = getDatesBetweenDates(checkInDate, checkOutDate);
-
-      // Add the dates to the list of booked dates
-      bookedDates = [...bookedDates, ...dates];
-
-      // Remove duplicate dates
-      bookedDates = [...new Set(bookedDates)];
-    });
-
-    // Return the booked dates
-    res.status(200).json({ bookedDates });
-  } catch (error) {
-    console.error('Error in retrieving booked dates:', error);
-    res.status(500).json({ message: 'Internal server error' });
-  }
-});
-
 
 // DELETE /api/upcoming-trips/:id
 router.post('/cancel', requireAuth, async (req, res) => {

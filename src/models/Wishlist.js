@@ -9,11 +9,10 @@ const wishlistSchema = new mongoose.Schema({
   },
   wishlistItems: [
     {
-      residenceId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Residence',
+      residence: {
+        type: Object,
         required: true,
-      },
+      }
     },
   ],
 });

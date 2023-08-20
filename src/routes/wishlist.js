@@ -3,6 +3,7 @@ const router = express.Router();
 const Wishlist = require('../models/Wishlist');
 const Residence = require('../models/Residence');
 const { requireAuth } = require('../middlewares/authMiddleware');
+const { fetchResidenceById } = require('../middlewares/guestyMiddleware');
 
 // GET /api/wishlist/get
 router.post('/getWishlist', requireAuth, async (req, res) => {
@@ -10,19 +11,21 @@ router.post('/getWishlist', requireAuth, async (req, res) => {
     const { userId } = req.body;
 
     // Find the wishlist for the user
-    const wishlist = await Wishlist.findOne({ userId }).populate('wishlistItems.residenceId');
+    let wishlist = await Wishlist.findOne({ userId })
+
+    //For each residenceId in the wishlist, fetch the residence details
+    if (wishlist) {
+      let wishlistItems = wishlist.wishlistItems;
 
     if (!wishlist) {
       return res.status(404).json({ message: 'Wishlist not found' });
     }
 
-    // Extract wishlist items
-    const wishlistItems = wishlist.wishlistItems;
-
     // Return the wishlist items to the frontend
     res.status(200).json({ wishlistItems });
+  }
   } catch (error) {
-    console.error('Error in retrieving wishlist:', error);
+    console.error('Error in retrieving wishlist:', error.data);
     res.status(500).json({ message: 'Internal server error' });
   }
 });
@@ -30,15 +33,16 @@ router.post('/getWishlist', requireAuth, async (req, res) => {
 // POST /api/wishlist/add
 router.post('/add', requireAuth, async (req, res) => {
     try {
-      const { residenceId, userId } = req.body;
+      const { residence, userId } = req.body;
   
       // Check if the wishlist item already exists for the user
       const wishlist = await Wishlist.findOne({ userId });
+      console.log("Wishlist: ", wishlist)
   
       if (wishlist) {
         // Check if the residenceId already exists in the wishlistItems array
         const isItemExists = wishlist.wishlistItems.some(
-          (item) => item.residenceId.toString() === residenceId
+          (item) => item.residence._id.toString() === residence._id.toString()
         );
   
         if (isItemExists) {
@@ -46,13 +50,13 @@ router.post('/add', requireAuth, async (req, res) => {
         }
   
         // If the item doesn't exist, add it to the wishlistItems array
-        wishlist.wishlistItems.push({ residenceId });
+        wishlist.wishlistItems.push({ residence });
         await wishlist.save();
       } else {
         // If the wishlist doesn't exist, create a new wishlist with the item
         const newWishlist = new Wishlist({
           userId,
-          wishlistItems: [{ residenceId }],
+          wishlistItems: [{ residence }],
         });
         await newWishlist.save();
       }
