@@ -4,7 +4,7 @@ const axios = require('axios');
 const router = express.Router();
 const Residence = require('../models/Residence');
 const { requireAuth } = require('../middlewares/authMiddleware');
-const UpcomingTrip = require('../models/UpcomingTrip');
+const UpcomingTrip = require('../models/Trip');
 const { addNotification } = require('../middlewares/notificationMiddleware');
 const { fetchResidences, fetchResidenceById, fetchFinancials, fetchAvailability, fetchCities, fetchQuote } = require('../middlewares/guestyMiddleware');
 
@@ -25,31 +25,7 @@ router.get('/getResidences', async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 
-//   const data = new URLSearchParams();
-//   data.append('grant_type', 'client_credentials');
-//   data.append('scope', 'booking_engine:api');
-//   data.append('client_secret', process.env.GUESTY_CLIENT_SECRET);
-//   data.append('client_id', process.env.GUESTY_CLIENT_ID);
 
-// const config = {
-//   headers: {
-//     'Accept': 'application/json',
-//     'Cache-Control': 'no-cache,no-cache',
-//     'Content-Type': 'application/x-www-form-urlencoded'
-//   }
-// };
-
-// axios.post('https://booking.guesty.com/oauth2/token', data, config)
-//   .then(response => {
-//     console.log(response.data);
-//   })
-//   .catch(error => {
-//     console.error(error);
-//   });
-// } catch (error) {
-//   console.error('Error in getResidences:', error);
-//   res.status(500).json({ message: 'Internal server error' });
-// }
 });
 
 

@@ -4,8 +4,7 @@ const User = require('../models/User');
 const { requireAuth } = require('../middlewares/authMiddleware');
 const Chat = require('../models/Chat');
 const Notifications = require('../models/Notifications');
-const UpcomingTrip = require('../models/UpcomingTrip');
-const PastTrip = require('../models/PastTrip');
+const Trip = require('../models/Trip');
 const Wishlist = require('../models/Wishlist');
 const Residence = require('../models/Residence');
 const { fetchResidenceById } = require('../middlewares/guestyMiddleware');
@@ -52,24 +51,21 @@ router.post('/resource/:id', requireAuth, async (req, res) => {
             case 'notifications':
                 resourceModel = Notifications;
                 break;
-            case 'upcomingTrip':
-                resourceModel = UpcomingTrip;
-                break;
-            case 'pastTrip':
-                resourceModel = PastTrip;
+            case 'trip':
+                resourceModel = Trip;
                 break;
             case 'wishlist':
                 resourceModel = Wishlist;
                 break;
             case 'review':
-                resourceModel = PastTrip;
+                resourceModel = Trip;
                 break;
             default:
                 console.log("Invalid resource type", typeOfResource)
                 return res.status(400).json({ message: 'Invalid resource type' });
         }
         let resource;
-        if (resourceModel === PastTrip) {
+        if (resourceModel === Trip) {
             resource = await resourceModel.findById(id)
             
             const residence = await findResidenceById(resource.residenceId);
@@ -117,11 +113,8 @@ router.post('/resource/set/:id', requireAuth, async (req, res) => {
             case 'notifications':
                 resourceModel = Notifications;
                 break;
-            case 'upcomingTrip':
-                resourceModel = UpcomingTrip;
-                break;
-            case 'pastTrip':
-                resourceModel = PastTrip;
+            case 'trip':
+                resourceModel = Trip;
                 break;
             case 'wishlist':
                 resourceModel = Wishlist;
@@ -187,47 +180,24 @@ router.post('/users', async (req, res) => {
         }
     });
 
-    //route to get all upcoming trips depending on the query
-    router.post('/upcomingTrips', async (req, res) => {
+    //route to get all trips depending on the query
+    router.post('/trips', async (req, res) => {
         try {
             const { userId } = req.body;
             console.log("Query",userId)
 
-            // Find all the upcomingTrips of the user, and populate the residenceId field
-            let upcomingTrips = await UpcomingTrip.find({ userId })
+            // Find all the trips of the user, and populate the residenceId field
+            let trips = await Trip.find({ userId })
             
-            const residence = await findResidenceById(upcomingTrips.residenceId);
-            //place the residence in the residenceId field
-            upcomingTrips.residenceId = residence;
             
-            res.status(200).json(upcomingTrips);
-            console.log(upcomingTrips)
+            res.status(200).json(trips);
+            console.log(trips)
         } catch (error) {
-            console.error('Error searching for upcoming trips:', error);
-            res.status(500).json({ error: 'Error searching for upcoming trips' });
+            console.error('Error searching for Trips:', error);
+            res.status(500).json({ error: 'Error searching for Trips' });
         }
     });
 
-    //route to get all past trips depending on the query
-    router.post('/pastTrips', async (req, res) => {
-        try {
-            const { userId } = req.body;
-            console.log("Query",userId)
-
-            // Find all the pastTrips of the user, and populate the residenceId field
-            let pastTrips = await PastTrip.find({ userId })
-
-            const residence = await findResidenceById(pastTrips.residenceId);
-            //place the residence in the residenceId field
-            pastTrips.residenceId = residence;
-
-            res.status(200).json(pastTrips);
-            console.log(pastTrips)
-        } catch (error) {
-            console.error('Error searching for past trips:', error);
-            res.status(500).json({ error: 'Error searching for past trips' });
-        }
-    });
 
 //Get the latest reviews from all the users
 router.post('/reviews', async (req, res) => {
@@ -235,31 +205,24 @@ router.post('/reviews', async (req, res) => {
         const { query, rating } = req.body;
         console.log("Query",query)
         console.log(rating)
-        let pastTrips;
+        let trips;
         if(rating === ''){
-            pastTrips = await PastTrip.find({
+            trips = await Trip.find({
                 $and: [
                     { review: { $regex: query, $options: 'i' } },
                 ],
                 })
-                const residence = await findResidenceById(pastTrips.residenceId);
-                //place the residence in the residenceId field
-                pastTrips.residenceId = residence;
         }else{
-            pastTrips = await PastTrip.find({
+            trips = await Trip.find({
                 $and: [
                     { review: { $regex: query, $options: 'i' } },
                     { rating: rating },
                 ],
                 })
-
-            const residence = await findResidenceById(pastTrips.residenceId);
-            //place the residence in the residenceId field
-            pastTrips.residenceId = residence;
         }
 
-        res.json(pastTrips);
-        console.log(pastTrips)
+        res.json(trips);
+        console.log(trips)
     } catch (error) {
         console.error('Error searching for past trips:', error);
         res.status(500).json({ error: 'Error searching for past trips' });
@@ -276,9 +239,6 @@ router.post('/wishlist', async (req, res) => {
         // Perform the search query on the database
         let wishlists = await Wishlist.find({userId})
 
-        const residence = await findResidenceById(wishlists.wishlistItems.residenceId);
-            //place the residence in the residenceId field
-            wishlists.residenceId = residence;
 
         res.json(wishlists);
         console.log(wishlists)
@@ -290,33 +250,33 @@ router.post('/wishlist', async (req, res) => {
 
 //Route to compare all upcoming trip's checkInDate and checkOutDate with the current date and if the current date is greater than the checkOutDate then move the upcoming trip to the past trip
 
-router.post('/upcomingTripsToPastTrips', async (req, res) => {
-    try {
-        // Perform the search query on the database
-        const upcomingTrips = await UpcomingTrip.find({});
-        console.log(upcomingTrips)
-        for (let i = 0; i < upcomingTrips.length; i++) {
-            const upcomingTrip = upcomingTrips[i];
-            const currentDate = new Date();
-            const checkOutDate = new Date(upcomingTrip.checkOutDate);
-            console.log(currentDate, checkOutDate)
-            if (currentDate > checkOutDate) {
-                console.log("Moving to past trips")
-                const pastTrip = new PastTrip({
-                    userId: upcomingTrip.userId,
-                    residenceId: upcomingTrip.residenceId,
-                    checkInDate: upcomingTrip.checkInDate,
-                    checkOutDate: upcomingTrip.checkOutDate,
-                });
-                await pastTrip.save();
-                await UpcomingTrip.findByIdAndDelete(upcomingTrip._id);
-            }
-        }
-        res.status(200).json({ message: 'Upcoming trips moved to past trips' });
-    } catch (error) {
-        console.error('Error moving upcoming trips to past trips:', error);
-        res.status(500).json({ error: 'Error moving upcoming trips to past trips' });
-    }
-});
+// router.post('/upcomingTripsToPastTrips', async (req, res) => {
+//     try {
+//         // Perform the search query on the database
+//         const upcomingTrips = await UpcomingTrip.find({});
+//         console.log(upcomingTrips)
+//         for (let i = 0; i < upcomingTrips.length; i++) {
+//             const upcomingTrip = upcomingTrips[i];
+//             const currentDate = new Date();
+//             const checkOutDate = new Date(upcomingTrip.checkOutDate);
+//             console.log(currentDate, checkOutDate)
+//             if (currentDate > checkOutDate) {
+//                 console.log("Moving to past trips")
+//                 const pastTrip = new PastTrip({
+//                     userId: upcomingTrip.userId,
+//                     residenceId: upcomingTrip.residenceId,
+//                     checkInDate: upcomingTrip.checkInDate,
+//                     checkOutDate: upcomingTrip.checkOutDate,
+//                 });
+//                 await pastTrip.save();
+//                 await UpcomingTrip.findByIdAndDelete(upcomingTrip._id);
+//             }
+//         }
+//         res.status(200).json({ message: 'Upcoming trips moved to past trips' });
+//     } catch (error) {
+//         console.error('Error moving upcoming trips to past trips:', error);
+//         res.status(500).json({ error: 'Error moving upcoming trips to past trips' });
+//     }
+// });
 
 module.exports = router;

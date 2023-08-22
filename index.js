@@ -10,10 +10,10 @@ const { requireAuth } = require('./src/middlewares/authMiddleware');
 const residencesRoutes = require('./src/routes/residences');
 const wishlistRoutes = require('./src/routes/wishlist');
 const notificationRoutes = require('./src/routes/notification');
-const pastTrips = require('./src/routes/pastTrips');
-const upcomingTrips = require('./src/routes/upcomingTrips');
+const tripRoutes = require('./src/routes/Trips');
 const chat = require('./src/routes/chat');
 const userRoutes = require('./src/routes/user');
+const { ensureAccessToken } = require('./src/middlewares/tokenManager');
 
 
 
@@ -34,23 +34,21 @@ app.use(passport.initialize());
 
 // Define your routes here
 
-app.use('/api', userRoutes)
+app.use('/api', ensureAccessToken, userRoutes)
 
-app.use('/api/admin', adminRoutes);
+app.use('/api/admin', ensureAccessToken, adminRoutes);
 
-app.use('/api', authRoutes);
+app.use('/api',ensureAccessToken, authRoutes);
 
-app.use('/api', residencesRoutes);
+app.use('/api',ensureAccessToken, residencesRoutes);
 
-app.use('/api/wishlist', wishlistRoutes);
+app.use('/api/wishlist',ensureAccessToken, wishlistRoutes);
 
-app.use('/api/notifications', notificationRoutes);
+app.use('/api/notifications',ensureAccessToken, notificationRoutes);
 
-app.use('/api/pastTrips', pastTrips);
+app.use('/api/trips',ensureAccessToken, tripRoutes);
 
-app.use('/api/upcomingTrips', upcomingTrips);
-
-app.use('/api/chat', chat)
+app.use('/api/chat',ensureAccessToken, chat)
 
 // Start the server
 app.listen(PORT, () => {
