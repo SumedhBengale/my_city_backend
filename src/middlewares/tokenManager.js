@@ -1,30 +1,31 @@
 // tokenManager.js
 const cron = require('node-cron');
 const axios = require('axios');
+const fs = require('fs');
+const tokenPath = 'src/middlewares/accessToken.txt';
 
 // Function to fetch a new access token from the external API
 async function fetchAccessToken() {
   // Perform the logic to obtain a new access token from the external API
-  const requestData = {
-    method: 'POST',
-    url: 'https://booking.guesty.com/oauth2/token',
+  const postData = new URLSearchParams();
+  postData.append('grant_type', 'client_credentials');
+  postData.append('scope', 'booking_engine:api');
+  postData.append('client_id', process.env.GUESTY_CLIENT_ID);
+  postData.append('client_secret', process.env.GUESTY_CLIENT_SECRET);
+
+  axios.post('https://booking.guesty.com/oauth2/token', postData, {
     headers: {
-      'accept': 'application/json',
-      'cache-control': 'no-cache,no-cache',
-      'content-type': 'application/x-www-form-urlencoded',
+      'Accept': 'application/json',
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Cache-Control': 'no-cache,no-cache',
     },
-    data: 'grant_type=client_credentials' +
-          '&scope=booking_engine:api' +
-          `&client_secret=${process.env.GUESTY_CLIENT_SECRET}` +
-          `&client_id=${process.env.GUESTY_CLIENT_ID}}`,
-  };
-  
-  // Make the Axios request
-  axios(requestData)
+  })
     .then((response) => {
-      console.log('Access Token:', response.data.access_token);
-      accessToken = response.data.access_token;
-      process.env.GUESTY_ACCESS_TOKEN = response.data.access_token;
+      console.log('New Access Token:', response.data.access_token);
+      if(response.data.access_token){
+        accessToken = response.data.access_token;
+        fs.writeFileSync(tokenPath, accessToken);
+      }
     })
     .catch((error) => {
       console.error('Error:', error);
@@ -51,7 +52,7 @@ initAccessToken();
 
 // Middleware to ensure a valid access token is available
 function ensureAccessToken(req, res, next) {
-  console.log('Access Token:', accessToken)
+  // console.log('Access Token:', accessToken)
   if (!accessToken) {
     return res.status(401).json({ message: 'Unauthorized' });
   }
@@ -63,4 +64,5 @@ function ensureAccessToken(req, res, next) {
 
 module.exports = {
   ensureAccessToken,
+  fetchAccessToken,
 };

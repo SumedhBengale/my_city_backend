@@ -1,9 +1,11 @@
 const axios = require('axios');
 const format = require('date-fns/format');
-
-//Function to fetch the residences from Guesty API
+const fs = require('fs');
+const tokenFilePath = 'src/middlewares/accessToken.txt';
+const {fetchAccessToken} = require('./tokenManager');
 
 const fetchResidences = async (filterDataString) => {
+    const GUESTY_ACCESS_TOKEN = fs.readFileSync(tokenFilePath, 'utf8');
     let filterData;
     if(filterDataString) {
     filterData = JSON.parse(filterDataString);
@@ -86,7 +88,7 @@ const fetchResidences = async (filterDataString) => {
 
         const response = await axios.get(process.env.GUESTY_BASE_URL + '/listings?' + filter, {
             headers: {
-                'Authorization': `Bearer ${process.env.GUESTY_ACCESS_TOKEN}`,
+                'Authorization': `Bearer ${GUESTY_ACCESS_TOKEN}`,
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
             }
@@ -95,21 +97,25 @@ const fetchResidences = async (filterDataString) => {
         // console.log("Residences", response.data)
         return response.data;
     } catch (err) {
-        console.error(err);
-        return err;
+        //If the status is 401, then console.log the error and return the status
+        if(err.response.status === 401){
+            await fetchAccessToken();
+        }else{
+            return err;
+        }
     }
 };
 
 //fetch by residence id
 
 const fetchResidenceById = async (id) => {
-
+    const GUESTY_ACCESS_TOKEN = fs.readFileSync(tokenFilePath, 'utf8');
     //Set the params for the request to include the financials in the response
 
     try {
         const response = await axios.get(process.env.GUESTY_BASE_URL + '/listings/' + id , {
             headers: {
-                'Authorization': `Bearer ${process.env.GUESTY_ACCESS_TOKEN}`,
+                'Authorization': `Bearer ${GUESTY_ACCESS_TOKEN}`,
                 'Accept': 'application/json',
                 // 'Host': 'booking.guesty.com',
             }
@@ -117,13 +123,19 @@ const fetchResidenceById = async (id) => {
 
         return response.data;
     } catch (err) {
-        console.error(err);
-        return err;
+        //If the status is 401, then console.log the error and return the status
+        if(err.response.status === 401){
+            await fetchAccessToken();
+        }else{
+            return err;
+        }
     }
 };
 
 //Guesty Qoute API
 const fetchQuote = async (residence, startDate, endDate, guestsCount) => {
+    const GUESTY_ACCESS_TOKEN = fs.readFileSync(tokenFilePath, 'utf8');
+
     try{
         const response = await axios.post(process.env.GUESTY_BASE_URL + '/reservations'+'/quotes',{
             checkInDateLocalized: format(new Date(startDate), 'yyyy-MM-dd'),
@@ -132,15 +144,19 @@ const fetchQuote = async (residence, startDate, endDate, guestsCount) => {
             guestsCount: guestsCount === 'any' ? 1 : guestsCount,
         }, {
             headers:{
-                'Authorization': `Bearer ${process.env.GUESTY_ACCESS_TOKEN}`,
+                'Authorization': `Bearer ${GUESTY_ACCESS_TOKEN}`,
                 'Accept': 'application/json; charset=utf-8',
                 'Content-Type': 'application/json',
             },
         });
         return response.data;
-    }catch(err){
-        console.error(err.data);
-        return err;
+    } catch (err) {
+        //If the status is 401, then console.log the error and return the status
+        if(err.response.status === 401){
+            await fetchAccessToken();
+        }else{
+            return err;
+        }
     }
 }
 
@@ -148,46 +164,64 @@ const fetchQuote = async (residence, startDate, endDate, guestsCount) => {
 //fetch financials
 
 const fetchFinancials = async (id) => {
+    const GUESTY_ACCESS_TOKEN = fs.readFileSync(tokenFilePath, 'utf8');
     try {
         const response = await axios.get(process.env.GUESTY_BASE_URL + '/financials/listing/' + id, {
             headers: {
-                'Authorization': `Bearer ${process.env.GUESTY_ACCESS_TOKEN}`,
+                'Authorization': `Bearer ${GUESTY_ACCESS_TOKEN}`,
             }
         });
         return response.data;
     } catch (err) {
-        console.error(err);
-        return err;
+        //If the status is 401, then console.log the error and return the status
+        if(err.response.status === 401){
+            await fetchAccessToken();
+        }else{
+            return err;
+        }
     }
 };
 
 //Get availability for a residence
 const fetchAvailability = async (id, startDate, endDate) => {
+    const GUESTY_ACCESS_TOKEN = fs.readFileSync(tokenFilePath, 'utf8');
     const query = `/calendar?from=${startDate}&to=${endDate}`
     try {
         const response = await axios.get(process.env.GUESTY_BASE_URL + '/listings/'+ id + query, {
             headers: {
-                'Authorization': `Bearer ${process.env.GUESTY_ACCESS_TOKEN}`,
+                'Authorization': `Bearer ${GUESTY_ACCESS_TOKEN}`,
             }
         });
         // console.log(response.data)
         return response.data;
     } catch (err) {
-        console.error(err);
+        //If the status is 401, then console.log the error and return the status
+        if(err.response.status === 401){
+            await fetchAccessToken();
+        }else{
+            return err;
+        }
     }
 };
 
 const fetchCities = async () => {
+    const GUESTY_ACCESS_TOKEN = fs.readFileSync(tokenFilePath, 'utf8');
     try {
         const response = await axios.get(process.env.GUESTY_BASE_URL + '/listings/cities', {
             headers: {
-                'Authorization': `Bearer ${process.env.GUESTY_ACCESS_TOKEN}`,
+                'Authorization': `Bearer ${GUESTY_ACCESS_TOKEN}`,
             }
         });
         // console.log("Cities", response.data)
         return response.data;
     } catch (err) {
-        console.error(err);
+        //If the status is 401, then console.log the error and return the status
+        console.log(err)
+        if(err.response.status === 401){
+            await fetchAccessToken();
+        }else{
+            return err;
+        }
     }
 };
 

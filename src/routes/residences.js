@@ -14,7 +14,6 @@ router.get('/getResidences', async (req, res) => {
     const { filterData } = req.query;
     
     await fetchResidences(filterData).then((residences) => {
-      // console.log("Residences: ", residences)
       res.status(200).json({ residences: residences, status: 200 });
     }).catch((err) => {
       console.error(err);
@@ -30,7 +29,7 @@ router.get('/getResidences', async (req, res) => {
 
 
 //Get a residence by id
-router.get('/getResidence/:id', requireAuth, async (req, res) => {
+router.get('/getResidence/:id', async (req, res) => {
   try {
     console.log("Getting residence by id");
     const { id } = req.params;
@@ -66,7 +65,7 @@ router.get('/getResidenceFinancials/:id', requireAuth, async (req, res) => {
 });
 
 //Get list of cities
-router.get('/getCities', requireAuth, async (req, res) => {
+router.get('/getCities', async (req, res) => {
   try {
     console.log("Getting cities");
     await fetchCities().then((cities) => {
@@ -135,7 +134,7 @@ router.post('/bookResidence', requireAuth, async (req, res) => {
   }
 });
 
-router.post('/getBookedDates', requireAuth, async (req, res) => {
+router.post('/getBookedDates', async (req, res) => {
 
   try {
     const { residenceId, startDate, endDate } = req.body;
