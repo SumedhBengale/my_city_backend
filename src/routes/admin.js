@@ -170,7 +170,7 @@ router.post('/users', async (req, res) => {
                 $or: [
                     { messages: { $elemMatch: { message: { $regex: query, $options: 'i' } } } },
                 ],
-            })
+            }).populate('userId');
 
             res.json(chats);
             console.log(chats)
