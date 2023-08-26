@@ -6,7 +6,6 @@ const jwt = require('jsonwebtoken');
 const { requireAuth } = require('../middlewares/authMiddleware');
 
 
-
 const router = express.Router();
 
 // Validation schema using Joi
@@ -34,9 +33,15 @@ router.post('/signup', async (req, res) => {
       const { userName, email, password } = req.body;
   
       // Check if the user already exists
-      const existingUser = await User.findOne({ email });
+      const existingUser = await User.findOne({ 
+        //check if email or username already exists
+        $or: [
+          { email: email },
+          { userName: userName}
+        ]
+       });
       if (existingUser) {
-        return res.status(409).json({ message: 'User already exists' });
+        return res.status(409).json({ message: 'Email or Username already exists' });
       }
   
       // Hash the password

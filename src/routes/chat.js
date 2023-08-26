@@ -11,7 +11,7 @@ router.post('/getChat', requireAuth, async (req, res) => {
 
         // Check if the chat already exists
 
-        Chat.findOne({ userId: userId }).then(async (chat) => {
+        Chat.findOne({ userId: userId }).populate('userId').then(async (chat) => {
             if (chat) {
                 // Return the chat id
                 console.log(chat)

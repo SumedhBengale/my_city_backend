@@ -165,15 +165,22 @@ router.post('/users', async (req, res) => {
             console.log("Query",query)
 
             // Perform the search query on the database
-            const chats = await Chat.find({
+            let chats = await Chat.find({
                 //Search for anything that matches the query in the messages
                 $or: [
                     { messages: { $elemMatch: { message: { $regex: query, $options: 'i' } } } },
                 ],
             }).populate('userId');
+            //Add a userName field to each chat, get the userName from the userId
+            let newChats = chats;
+            newChats = newChats.map((chat) => {
+                //Add a userName field to each chat, get the userName from the userId
+                const userName = chat.userId.userName;
+                return { ...chat._doc, userName };
+            });
 
-            res.json(chats);
-            console.log(chats)
+            res.json(newChats);
+            console.log(newChats)
         } catch (error) {
             console.error('Error searching for chats:', error);
             res.status(500).json({ error: 'Error searching for chats' });
