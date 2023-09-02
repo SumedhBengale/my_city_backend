@@ -7,13 +7,14 @@ const { requireAuth } = require('../middlewares/authMiddleware');
 const UpcomingTrip = require('../models/Trip');
 const { addNotification } = require('../middlewares/notificationMiddleware');
 const { fetchResidences, fetchResidenceById, fetchFinancials, fetchAvailability, fetchCities, fetchQuote } = require('../middlewares/guestyMiddleware');
+const { format } = require('date-fns');
 
 router.get('/getResidences', async (req, res) => {
   try {
 
-    const { filterData } = req.query;
+    const { filterData, luxe } = req.query;
     
-    await fetchResidences(filterData).then((residences) => {
+    await fetchResidences({filterDataString:filterData, luxe:luxe}).then((residences) => {
       res.status(200).json({ residences: residences, status: 200 });
     }).catch((err) => {
       console.error(err);
@@ -33,8 +34,10 @@ router.get('/getResidence/:id', async (req, res) => {
   try {
     console.log("Getting residence by id");
     const { id } = req.params;
+    console.log(id)
 
     await fetchResidenceById(id).then(async (residence) => {
+      // console.log("residence", residence)
       res.status(200).json({ residence: residence, status: 200 });
     }).catch((err) => {
       console.error(err);
@@ -123,7 +126,9 @@ router.post('/bookResidence', requireAuth, async (req, res) => {
 
     // Add a notification to the user
     
-    addNotification(userId, 'Your booking has been confirmed');
+    addNotification(userId, `Your booking for ${
+      format(new Date(checkInDate), 'dd-MM-yyyy')
+    } has been confirmed`);
 
 
     res.status(201).json({ upcomingTrip: upcomingTrip, status: 201 });

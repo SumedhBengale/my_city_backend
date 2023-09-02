@@ -8,6 +8,8 @@ const Trip = require('../models/Trip');
 const Wishlist = require('../models/Wishlist');
 const Residence = require('../models/Residence');
 const { fetchResidenceById } = require('../middlewares/guestyMiddleware');
+const ContactRequest = require('../models/ContactRequest');
+const Enquiry = require('../models/Enquiry');
 
 
 
@@ -252,6 +254,57 @@ router.post('/wishlist', async (req, res) => {
     } catch (error) {
         console.error('Error searching for wishlists:', error);
         res.status(500).json({ error: 'Error searching for wishlists' });
+    }
+});
+
+router.get('/getRequests', requireAuth, async (req, res) => {
+    try {
+        const contactRequests = await ContactRequest.find().populate('userId')
+        res.status(200).json({ contactRequests });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'An error occurred while retrieving contact requests' });
+    }
+});
+
+//GetEnquiries
+router.get('/getEnquiries', requireAuth, async (req, res) => {
+    try {
+        const enquiries = await Enquiry.find();
+        res.status(200).json({ enquiries });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'An error occurred while retrieving contact requests' });
+    }
+});
+
+//delete enquiry
+router.post('/deleteEnquiry', requireAuth, async (req, res) => {
+    try {
+        const { id } = req.body;
+        console.log(id)
+        const enquiry = await Enquiry.findByIdAndDelete(id);
+        console.log(enquiry)
+        res.status(200).json({ message: 'Enquiry deleted successfully' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'An error occurred while deleting the enquiry' });
+    }
+});
+
+//deleteContactRequest
+router.post('/deleteContactRequest', requireAuth, async (req, res) => {
+    try {
+        const { id } = req.body;
+        console.log(id)
+        
+        const deletedContactRequest = await ContactRequest.findByIdAndDelete(id);
+        console.log(deletedContactRequest)
+
+        res.status(200).json({ message: 'Contact request deleted successfully' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'An error occurred while deleting the contact request' });
     }
 });
 

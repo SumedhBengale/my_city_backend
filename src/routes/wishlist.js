@@ -45,8 +45,13 @@ router.post('/add', requireAuth, async (req, res) => {
           (item) => item.residence._id.toString() === residence._id.toString()
         );
   
+        //if it exists, remove it from the wishlist
         if (isItemExists) {
-          return res.status(400).json({ message: 'Listing already exists in the wishlist' });
+          wishlist.wishlistItems = wishlist.wishlistItems.filter(
+            (item) => item.residence._id.toString() !== residence._id.toString()
+          );
+          await wishlist.save();
+          return res.status(200).json({ message: 'Item removed from wishlist', status: 200 });
         }
   
         // If the item doesn't exist, add it to the wishlistItems array

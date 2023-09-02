@@ -4,11 +4,13 @@ const fs = require('fs');
 const tokenFilePath = 'src/middlewares/accessToken.txt';
 const {fetchAccessToken} = require('./tokenManager');
 
-const fetchResidences = async (filterDataString) => {
+const fetchResidences = async ({filterDataString, luxe}) => {
     const GUESTY_ACCESS_TOKEN = fs.readFileSync(tokenFilePath, 'utf8');
     let filterData;
     if(filterDataString) {
     filterData = JSON.parse(filterDataString);
+    console.log("Filter data", filterData)
+    console.log("Luxe: ", luxe)
     }else{
         filterData = null;
     }
@@ -18,15 +20,9 @@ const fetchResidences = async (filterDataString) => {
         if (filterData) {
             // Location
             if (filterData.location.city) {
-                console.log("Location: ", filterData.location)
-                filter += `&city=${encodeURIComponent(filterData.location.city)}`;
-                //state
-                if (filterData.location.state) {
-                    filter += `&state=${encodeURIComponent(filterData.location.state)}`;
-                }
-                //country
-                if (filterData.location.country) {
-                    filter += `&country=${encodeURIComponent(filterData.location.country)}`;
+                //make sure lowercase and search for city name in tags
+                if(filterData.location.city){
+                    filter += `&tags=${encodeURIComponent(filterData.location.city.toLowerCase())}`;
                 }
             }
 
@@ -85,6 +81,9 @@ const fetchResidences = async (filterDataString) => {
             }
 
         }
+        if(luxe){
+            filter += `&tags=luxe`;
+        }
 
         const response = await axios.get(process.env.GUESTY_BASE_URL + '/listings?' + filter, {
             headers: {
@@ -97,6 +96,7 @@ const fetchResidences = async (filterDataString) => {
         // console.log("Residences", response.data)
         return response.data;
     } catch (err) {
+        console.log(err)
         //If the status is 401, then console.log the error and return the status
         if(err.response.status === 401){
             await fetchAccessToken();
