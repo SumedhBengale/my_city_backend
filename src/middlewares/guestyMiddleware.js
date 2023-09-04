@@ -2,16 +2,17 @@ const axios = require('axios');
 const format = require('date-fns/format');
 const fs = require('fs');
 const tokenFilePath = 'src/middlewares/accessToken.txt';
-const {fetchAccessToken} = require('./tokenManager');
+const { fetchAccessToken } = require('./tokenManager');
+const { parseISO } = require('date-fns');
 
-const fetchResidences = async ({filterDataString, luxe}) => {
+const fetchResidences = async ({ filterDataString, luxe }) => {
     const GUESTY_ACCESS_TOKEN = fs.readFileSync(tokenFilePath, 'utf8');
     let filterData;
-    if(filterDataString) {
-    filterData = JSON.parse(filterDataString);
-    console.log("Filter data", filterData)
-    console.log("Luxe: ", luxe)
-    }else{
+    if (filterDataString) {
+        filterData = JSON.parse(filterDataString);
+        console.log("Filter data", filterData)
+        console.log("Luxe: ", luxe)
+    } else {
         filterData = null;
     }
     try {
@@ -21,7 +22,7 @@ const fetchResidences = async ({filterDataString, luxe}) => {
             // Location
             if (filterData.location.city) {
                 //make sure lowercase and search for city name in tags
-                if(filterData.location.city){
+                if (filterData.location.city) {
                     filter += `&tags=${encodeURIComponent(filterData.location.city.toLowerCase())}`;
                 }
             }
@@ -29,8 +30,8 @@ const fetchResidences = async ({filterDataString, luxe}) => {
             // Date Range
             if (filterData.startDate && filterData.endDate) {
                 //if both are the same date, don't include any date filter
-                if(filterData.startDate == filterData.endDate){
-                }else{
+                if (filterData.startDate == filterData.endDate) {
+                } else {
                     console.log("Date range: ", filterData.startDate, filterData.endDate)
                     filter += `&checkIn=${encodeURIComponent(
                         //startDate in yyyy-mm-dd format
@@ -44,28 +45,28 @@ const fetchResidences = async ({filterDataString, luxe}) => {
 
             // Bedrooms
             if (filterData.bedrooms) {
-                if(filterData.bedrooms == 'any'){
+                if (filterData.bedrooms == 'any') {
                     filter += `&numberOfBedrooms=1`;
-                }else{
-                filter += `&numberOfBedrooms=${encodeURIComponent(filterData.bedrooms)}`;
+                } else {
+                    filter += `&numberOfBedrooms=${encodeURIComponent(filterData.bedrooms)}`;
                 }
             }
 
             // Bathrooms
             if (filterData.bathrooms) {
-                if(filterData.bathrooms == 'any'){
+                if (filterData.bathrooms == 'any') {
                     filter += `&numberOfBathrooms=1`;
-                }else{
-                filter += `&numberOfBathrooms=${encodeURIComponent(filterData.bathrooms)}`;
+                } else {
+                    filter += `&numberOfBathrooms=${encodeURIComponent(filterData.bathrooms)}`;
                 }
             }
 
             // Guests/Occupants
             if (filterData.guests) {
-                if(filterData.guests == 'any'){
+                if (filterData.guests == 'any') {
                     filter += `&minOccupancy=1`;
-                }else{
-                filter += `&minOccupancy=${encodeURIComponent(filterData.guests)}`;
+                } else {
+                    filter += `&minOccupancy=${encodeURIComponent(filterData.guests)}`;
                 }
             }
 
@@ -81,7 +82,7 @@ const fetchResidences = async ({filterDataString, luxe}) => {
             }
 
         }
-        if(luxe){
+        if (luxe) {
             filter += `&tags=luxe`;
         }
 
@@ -98,9 +99,9 @@ const fetchResidences = async ({filterDataString, luxe}) => {
     } catch (err) {
         console.log(err)
         //If the status is 401, then console.log the error and return the status
-        if(err.response.status === 401){
+        if (err.response.status === 401) {
             await fetchAccessToken();
-        }else{
+        } else {
             return err;
         }
     }
@@ -113,7 +114,7 @@ const fetchResidenceById = async (id) => {
     //Set the params for the request to include the financials in the response
 
     try {
-        const response = await axios.get(process.env.GUESTY_BASE_URL + '/listings/' + id , {
+        const response = await axios.get(process.env.GUESTY_BASE_URL + '/listings/' + id, {
             headers: {
                 'Authorization': `Bearer ${GUESTY_ACCESS_TOKEN}`,
                 'Accept': 'application/json',
@@ -124,9 +125,9 @@ const fetchResidenceById = async (id) => {
         return response.data;
     } catch (err) {
         //If the status is 401, then console.log the error and return the status
-        if(err.response.status === 401){
+        if (err.response.status === 401) {
             await fetchAccessToken();
-        }else{
+        } else {
             return err;
         }
     }
@@ -134,16 +135,16 @@ const fetchResidenceById = async (id) => {
 
 //Guesty Qoute API
 const fetchQuote = async (residence, startDate, endDate, guestsCount) => {
-    const GUESTY_ACCESS_TOKEN = fs.readFileSync(tokenFilePath, 'utf8');
 
-    try{
-        const response = await axios.post(process.env.GUESTY_BASE_URL + '/reservations'+'/quotes',{
-            checkInDateLocalized: format(new Date(startDate), 'yyyy-MM-dd'),
-            checkOutDateLocalized: format(new Date(endDate), 'yyyy-MM-dd'),
+    const GUESTY_ACCESS_TOKEN = fs.readFileSync(tokenFilePath, 'utf8');
+    try {
+        const response = await axios.post(process.env.GUESTY_BASE_URL + '/reservations' + '/quotes', {
+            checkInDateLocalized: format(parseISO(startDate), 'yyyy-MM-dd'),
+            checkOutDateLocalized: format(parseISO(endDate), 'yyyy-MM-dd'),
             listingId: residence._id,
             guestsCount: guestsCount === 'any' ? 1 : guestsCount,
         }, {
-            headers:{
+            headers: {
                 'Authorization': `Bearer ${GUESTY_ACCESS_TOKEN}`,
                 'Accept': 'application/json; charset=utf-8',
                 'Content-Type': 'application/json',
@@ -151,10 +152,11 @@ const fetchQuote = async (residence, startDate, endDate, guestsCount) => {
         });
         return response.data;
     } catch (err) {
+        console.log(err)
         //If the status is 401, then console.log the error and return the status
-        if(err.response.status === 401){
+        if (err.response.status === 401) {
             await fetchAccessToken();
-        }else{
+        } else {
             return err;
         }
     }
@@ -174,9 +176,9 @@ const fetchFinancials = async (id) => {
         return response.data;
     } catch (err) {
         //If the status is 401, then console.log the error and return the status
-        if(err.response.status === 401){
+        if (err.response.status === 401) {
             await fetchAccessToken();
-        }else{
+        } else {
             return err;
         }
     }
@@ -187,7 +189,7 @@ const fetchAvailability = async (id, startDate, endDate) => {
     const GUESTY_ACCESS_TOKEN = fs.readFileSync(tokenFilePath, 'utf8');
     const query = `/calendar?from=${startDate}&to=${endDate}`
     try {
-        const response = await axios.get(process.env.GUESTY_BASE_URL + '/listings/'+ id + query, {
+        const response = await axios.get(process.env.GUESTY_BASE_URL + '/listings/' + id + query, {
             headers: {
                 'Authorization': `Bearer ${GUESTY_ACCESS_TOKEN}`,
             }
@@ -196,9 +198,9 @@ const fetchAvailability = async (id, startDate, endDate) => {
         return response.data;
     } catch (err) {
         //If the status is 401, then console.log the error and return the status
-        if(err.response.status === 401){
+        if (err.response.status === 401) {
             await fetchAccessToken();
-        }else{
+        } else {
             return err;
         }
     }
@@ -217,9 +219,9 @@ const fetchCities = async () => {
     } catch (err) {
         //If the status is 401, then console.log the error and return the status
         console.log(err)
-        if(err.response.status === 401){
+        if (err.response.status === 401) {
             await fetchAccessToken();
-        }else{
+        } else {
             return err;
         }
     }

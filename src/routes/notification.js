@@ -7,10 +7,10 @@ const { requireAuth } = require('../middlewares/authMiddleware');
 router.post('/get', requireAuth, async (req, res) => {
   try {
     const { userId } = req.body;
-    
+
     // Retrieve the notifications for the user
     const notifications = await Notification.findOne({ userId });
-    
+
     if (!notifications) {
       return res.status(404).json({ message: 'Notifications not found' });
     }
@@ -88,7 +88,5 @@ router.post('/delete', requireAuth, async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 });
-
-module.exports = router;
 
 module.exports = router;

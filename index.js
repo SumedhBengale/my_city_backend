@@ -18,10 +18,6 @@ const enquiryRoutes = require('./src/routes/enquiry')
 const stripeRoutes = require('./src/routes/stripe');
 const { ensureAccessToken } = require('./src/middlewares/tokenManager');
 
-
-
-
-
 const app = express();
 const PORT = 5000; // You can use any desired port number
 app.use(cors());
@@ -61,6 +57,6 @@ app.use('/api', stripeRoutes);
 
 
 // Start the server
-app.listen(PORT,'0.0.0.0', () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server is running on port ${PORT}`);
 });
