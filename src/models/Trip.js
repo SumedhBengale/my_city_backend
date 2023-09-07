@@ -18,6 +18,14 @@ const TripSchema = new mongoose.Schema({
     type: Date,
     required: true,
   },
+  paymentIntent: {
+    type: String,
+    required: true,
+  },
+  reservationId: {
+    type: String,
+    required: true,
+  },
   review: {
     type: String,
     required: false,

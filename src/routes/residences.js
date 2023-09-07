@@ -12,9 +12,9 @@ const { format } = require('date-fns');
 router.get('/getResidences', async (req, res) => {
   try {
 
-    const { filterData, luxe } = req.query;
+    const { filterData, luxe, limit } = req.query;
     
-    await fetchResidences({filterDataString:filterData, luxe:luxe}).then((residences) => {
+    await fetchResidences({filterDataString:filterData, luxe:luxe, limit: limit}).then((residences) => {
       res.status(200).json({ residences: residences, status: 200 });
     }).catch((err) => {
       console.error(err);
@@ -86,15 +86,16 @@ router.get('/getCities', async (req, res) => {
 //getQuote
 router.post('/getQuote', requireAuth, async (req, res) => {
   try {
-    const { residenceId, checkInDate, checkOutDate, guestCount, userId } = req.body;
+    const { residenceId, checkInDate, checkOutDate, guestCount, userId, coupon } = req.body;
 
     console.log("residenceId", residenceId)
     console.log("checkInDate", checkInDate)
     console.log("checkOutDate", checkOutDate)
     console.log("numberOfGuests", guestCount)
     console.log("userId", userId)
+    console.log("coupon", coupon)
 
-    fetchQuote(residenceId, checkInDate, checkOutDate, guestCount).then((quote) => {
+    fetchQuote(residenceId, checkInDate, checkOutDate, guestCount, coupon).then((quote) => {
       console.log("Quote: ", quote);
       res.status(200).json({ quote: quote, status: 200 });
     }).catch((err) => {
@@ -109,35 +110,38 @@ router.post('/getQuote', requireAuth, async (req, res) => {
 
 
 //Book a residence
-router.post('/bookResidence', requireAuth, async (req, res) => {
-  try {
-    const { residence, quote, checkInDate, checkOutDate, userId } = req.body;
-    console.log("residence", residence)
-    // Create a new upcoming trip
-    const upcomingTrip = new UpcomingTrip({
-      userId,
-      residence,
-      checkInDate,
-      checkOutDate,
-    });
+// router.post('/bookResidence', requireAuth, async (req, res) => {
+//   try {
+//     const { quote,userId } = req.body;
+//     const residence = await fetchResidenceById(quote.unitTypeId);
+//     const checkInDate = quote.checkInDateLocalized;
+//     const checkOutDate = quote.checkOutDateLocalized;
 
-    // Save the upcoming trip to the database
-    await upcomingTrip.save();
+//     // Create a new upcoming trip
+//     const upcomingTrip = new UpcomingTrip({
+//       userId,
+//       residence,
+//       checkInDate,
+//       checkOutDate,
+//     });
 
-    // Add a notification to the user
+//     // Save the upcoming trip to the database
+//     await upcomingTrip.save();
+
+//     // Add a notification to the user
     
-    addNotification(userId, `Your booking for ${
-      format(new Date(checkInDate), 'dd-MM-yyyy')
-    } has been confirmed`);
+//     addNotification(userId, `Your booking for ${
+//       format(new Date(checkInDate), 'dd-MM-yyyy')
+//     } has been confirmed`);
 
 
-    res.status(201).json({ upcomingTrip: upcomingTrip, status: 201 });
+//     res.status(201).json({ upcomingTrip: upcomingTrip, status: 201 });
 
-  } catch (error) {
-    console.error('Error in adding upcoming trip:', error);
-    res.status(500).json({ message: 'Internal server error' });
-  }
-});
+//   } catch (error) {
+//     console.error('Error in adding upcoming trip:', error);
+//     res.status(500).json({ message: 'Internal server error' });
+//   }
+// });
 
 router.post('/getBookedDates', async (req, res) => {
 

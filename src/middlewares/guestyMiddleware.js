@@ -5,7 +5,7 @@ const tokenFilePath = 'src/middlewares/accessToken.txt';
 const { fetchAccessToken } = require('./tokenManager');
 const { parseISO } = require('date-fns');
 
-const fetchResidences = async ({ filterDataString, luxe }) => {
+const fetchResidences = async ({ filterDataString, luxe, limit }) => {
     const GUESTY_ACCESS_TOKEN = fs.readFileSync(tokenFilePath, 'utf8');
     let filterData;
     if (filterDataString) {
@@ -46,7 +46,7 @@ const fetchResidences = async ({ filterDataString, luxe }) => {
             // Bedrooms
             if (filterData.bedrooms) {
                 if (filterData.bedrooms == 'any') {
-                    filter += `&numberOfBedrooms=1`;
+                    filter += `&numberOfBedrooms=0`;
                 } else {
                     filter += `&numberOfBedrooms=${encodeURIComponent(filterData.bedrooms)}`;
                 }
@@ -55,7 +55,7 @@ const fetchResidences = async ({ filterDataString, luxe }) => {
             // Bathrooms
             if (filterData.bathrooms) {
                 if (filterData.bathrooms == 'any') {
-                    filter += `&numberOfBathrooms=1`;
+                    filter += `&numberOfBathrooms=0`;
                 } else {
                     filter += `&numberOfBathrooms=${encodeURIComponent(filterData.bathrooms)}`;
                 }
@@ -84,6 +84,10 @@ const fetchResidences = async ({ filterDataString, luxe }) => {
         }
         if (luxe) {
             filter += `&tags=luxe`;
+        }
+        if(limit){
+            //Limit the response to 100 residences
+        filter += `&limit=${encodeURIComponent(limit)}`;
         }
 
         const response = await axios.get(process.env.GUESTY_BASE_URL + '/listings?' + filter, {
@@ -134,7 +138,7 @@ const fetchResidenceById = async (id) => {
 };
 
 //Guesty Qoute API
-const fetchQuote = async (residence, startDate, endDate, guestsCount) => {
+const fetchQuote = async (residence, startDate, endDate, guestCount, coupon) => {
 
     const GUESTY_ACCESS_TOKEN = fs.readFileSync(tokenFilePath, 'utf8');
     try {
@@ -142,7 +146,9 @@ const fetchQuote = async (residence, startDate, endDate, guestsCount) => {
             checkInDateLocalized: format(parseISO(startDate), 'yyyy-MM-dd'),
             checkOutDateLocalized: format(parseISO(endDate), 'yyyy-MM-dd'),
             listingId: residence._id,
-            guestsCount: guestsCount === 'any' ? 1 : guestsCount,
+            guestsCount: guestCount === 'any' ? 1 : guestCount,
+            //If coupon is null, don't include it in the request
+            ...(coupon && { coupons: coupon }),
         }, {
             headers: {
                 'Authorization': `Bearer ${GUESTY_ACCESS_TOKEN}`,
@@ -227,6 +233,57 @@ const fetchCities = async () => {
     }
 };
 
+//instantReservation
+const instantReservation = async (quoteId, ratePlanId, ccToken, guest) => {
+    const GUESTY_ACCESS_TOKEN = fs.readFileSync(tokenFilePath, 'utf8');
+    console.log("Quote id: ", quoteId)
+    console.log("Rate plan id: ", ratePlanId)
+    console.log("CC Token: ", ccToken)
+    console.log("Guest: ", guest)
+    try {
+        const response = await axios.post(process.env.GUESTY_BASE_URL + `/reservations/quotes/${quoteId}/instant`, {
+            guest: {firstName: guest.firstName, lastName: guest.lastName, email: guest.email},
+            ratePlanId: ratePlanId,
+            ccToken: ccToken
+        }, {
+            headers: {
+                'Authorization': `Bearer ${GUESTY_ACCESS_TOKEN}`,
+                'Accept': 'application/json; charset=utf-8',
+                'Content-Type': 'application/json',
+            },
+        });
+        return response.data;
+    } catch (err) {
+        console.log(err)
+        //If the status is 401, then console.log the error and return the status
+        if (err.response.status === 401) {
+            await fetchAccessToken();
+        } else {
+            return err;
+        }
+    }
+}
+
+
+const fetchQuoteById = async (id) => {
+    const GUESTY_ACCESS_TOKEN = fs.readFileSync(tokenFilePath, 'utf8');
+    try {
+        const response = await axios.get(process.env.GUESTY_BASE_URL + '/reservations/quotes/' + id, {
+            headers: {
+                'Authorization': `Bearer ${GUESTY_ACCESS_TOKEN}`,
+            }
+        });
+        return response.data;
+    } catch (err) {
+        //If the status is 401, then console.log the error and return the status
+        if (err.response.status === 401) {
+            await fetchAccessToken();
+        } else {
+            return err;
+        }
+    }
+};
+
 module.exports = {
     fetchResidences,
     fetchResidenceById,
@@ -234,4 +291,6 @@ module.exports = {
     fetchAvailability,
     fetchCities,
     fetchQuote,
+    instantReservation,
+    fetchQuoteById,
 };

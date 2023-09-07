@@ -10,6 +10,18 @@ router.post('/getWishlist', requireAuth, async (req, res) => {
   try {
     const { userId } = req.body;
 
+    //Check if wishlist model exists
+    const wishlistExists = await Wishlist.exists({ userId });
+    wishlistExists ? console.log("Wishlist exists") : console.log("Wishlist does not exist")
+    //If wishlist does not exist, create a new wishlist
+    if (!wishlistExists) {
+      const newWishlist = new Wishlist({
+        userId,
+        wishlistItems: [],
+      });
+      await newWishlist.save();
+    }
+
     // Find the wishlist for the user
     let wishlist = await Wishlist.findOne({ userId })
 
@@ -18,6 +30,7 @@ router.post('/getWishlist', requireAuth, async (req, res) => {
       let wishlistItems = wishlist.wishlistItems;
 
     if (!wishlist) {
+      console.log("Wishlist not found")
       return res.status(404).json({ message: 'Wishlist not found' });
     }
 
