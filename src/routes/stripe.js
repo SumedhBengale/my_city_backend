@@ -4,6 +4,7 @@ const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const { requireAuth } = require('../middlewares/authMiddleware');
 const { instantReservation, fetchResidenceById, fetchQuoteById } = require("../middlewares/guestyMiddleware");
 const Trip = require("../models/Trip");
+const { addNotification } = require("../middlewares/notificationMiddleware");
 
 
 router.post("/create-payment-intent", requireAuth, async (req, res) => {
@@ -18,7 +19,7 @@ router.post("/create-payment-intent", requireAuth, async (req, res) => {
     amount: amount * 100,
     currency: currency,
     description: 'Guesty Reservation Payment',
-    });
+  });
 
   res.send({
     clientSecret: paymentIntent.client_secret,
@@ -27,7 +28,7 @@ router.post("/create-payment-intent", requireAuth, async (req, res) => {
 
 router.post("/payment/success", requireAuth, async (req, res) => {
   const { paymentIntent, paymentStatus, quoteId } = req.body;
-  
+
   if (paymentStatus === "succeeded") {
     //Get the payment method from stripe
     const intent = await stripe.paymentIntents.retrieve(paymentIntent);
@@ -52,6 +53,8 @@ router.post("/payment/success", requireAuth, async (req, res) => {
         paymentIntent: intent.id,
       });
       await upcomingTrip.save();
+
+      addNotification(req.user._id, `Your booking for ${residence.title} has been confirmed!`);
 
       return res.send({ message: "Payment successful", response: response });
     }).catch((err) => {

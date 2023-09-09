@@ -22,7 +22,7 @@ async function fetchAccessToken() {
   })
     .then((response) => {
       console.log('New Access Token:', response.data.access_token);
-      if(response.data.access_token){
+      if (response.data.access_token) {
         accessToken = response.data.access_token;
         fs.writeFileSync(tokenPath, accessToken);
       }
@@ -31,11 +31,6 @@ async function fetchAccessToken() {
       console.error('Error:', error);
     });
 }
-
-// Schedule token refresh every 24 hours
-cron.schedule('0 0 * * *', async () => {
-  await fetchAccessToken();
-});
 
 // Initialize the access token
 async function initAccessToken() {

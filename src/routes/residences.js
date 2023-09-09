@@ -8,13 +8,14 @@ const UpcomingTrip = require('../models/Trip');
 const { addNotification } = require('../middlewares/notificationMiddleware');
 const { fetchResidences, fetchResidenceById, fetchFinancials, fetchAvailability, fetchCities, fetchQuote } = require('../middlewares/guestyMiddleware');
 const { format } = require('date-fns');
+const fetchAddresses = require('../middlewares/postCodeMiddleware');
 
 router.get('/getResidences', async (req, res) => {
   try {
 
     const { filterData, luxe, limit } = req.query;
-    
-    await fetchResidences({filterDataString:filterData, luxe:luxe, limit: limit}).then((residences) => {
+
+    await fetchResidences({ filterDataString: filterData, luxe: luxe, limit: limit }).then((residences) => {
       res.status(200).json({ residences: residences, status: 200 });
     }).catch((err) => {
       console.error(err);
@@ -48,6 +49,24 @@ router.get('/getResidence/:id', async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 });
+
+//getLocations
+router.get('/getLocations', async (req, res) => {
+  try {
+    console.log("Getting locations");
+    const { postcode } = req.query;
+    console.log(postcode);
+
+    const data = await fetchAddresses(postcode);
+    console.log("locations", data);
+
+    res.status(200).json({ locations: data, status: 200 });
+  } catch (error) {
+    console.error('Error in getLocations:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 
 //Get residence financials
 router.get('/getResidenceFinancials/:id', requireAuth, async (req, res) => {
@@ -129,7 +148,7 @@ router.post('/getQuote', requireAuth, async (req, res) => {
 //     await upcomingTrip.save();
 
 //     // Add a notification to the user
-    
+
 //     addNotification(userId, `Your booking for ${
 //       format(new Date(checkInDate), 'dd-MM-yyyy')
 //     } has been confirmed`);
@@ -159,12 +178,12 @@ router.post('/getBookedDates', async (req, res) => {
     }).catch((err) => {
       console.error(err);
       res.status(500).json({ message: 'Internal server error' });
-        })
-      } catch (error) {
-        console.error('Error in getBookedDates:', error);
-        res.status(500).json({ message: 'Internal server error' });
-      }
-    });
+    })
+  } catch (error) {
+    console.error('Error in getBookedDates:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
 
 
 

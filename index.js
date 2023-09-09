@@ -16,7 +16,9 @@ const userRoutes = require('./src/routes/user');
 const contactRoutes = require('./src/routes/contact');
 const enquiryRoutes = require('./src/routes/enquiry')
 const stripeRoutes = require('./src/routes/stripe');
-const { ensureAccessToken } = require('./src/middlewares/tokenManager');
+const { ensureAccessToken, fetchAccessToken } = require('./src/middlewares/tokenManager');
+const cron = require('node-cron');
+
 
 const app = express();
 const PORT = 5000; // You can use any desired port number
@@ -30,6 +32,13 @@ connectToDatabase();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(passport.initialize());
+
+//Run this code every 20 hours, use cron
+
+cron.schedule('0 */20 * * *', () => {
+  console.log('Fetching Access Token every 20 hours to be safe');
+  fetchAccessToken();
+});
 
 // Define your routes here
 

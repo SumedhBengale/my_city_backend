@@ -21,8 +21,9 @@ const fetchResidences = async ({ filterDataString, luxe, limit }) => {
         if (filterData) {
             // Location
             if (filterData.location.city) {
-                //make sure lowercase and search for city name in tags
-                if (filterData.location.city) {
+                //If city is any or anywhere, don't include any location filter
+                if (filterData.location.city == 'any' || filterData.location.city == 'anywhere') {
+                } else if (filterData.location.city) {
                     filter += `&tags=${encodeURIComponent(filterData.location.city.toLowerCase())}`;
                 }
             }
@@ -85,9 +86,9 @@ const fetchResidences = async ({ filterDataString, luxe, limit }) => {
         if (luxe) {
             filter += `&tags=luxe`;
         }
-        if(limit){
+        if (limit) {
             //Limit the response to 100 residences
-        filter += `&limit=${encodeURIComponent(limit)}`;
+            filter += `&limit=${encodeURIComponent(limit)}`;
         }
 
         const response = await axios.get(process.env.GUESTY_BASE_URL + '/listings?' + filter, {
@@ -242,7 +243,7 @@ const instantReservation = async (quoteId, ratePlanId, ccToken, guest) => {
     console.log("Guest: ", guest)
     try {
         const response = await axios.post(process.env.GUESTY_BASE_URL + `/reservations/quotes/${quoteId}/instant`, {
-            guest: {firstName: guest.firstName, lastName: guest.lastName, email: guest.email},
+            guest: { firstName: guest.firstName, lastName: guest.lastName, email: guest.email },
             ratePlanId: ratePlanId,
             ccToken: ccToken
         }, {

@@ -2,6 +2,7 @@ const express = require('express');
 const Notification = require('../models/Notifications');
 const router = express.Router();
 const { requireAuth } = require('../middlewares/authMiddleware');
+const Notifications = require('../models/Notifications');
 
 // GET /api/notifications
 router.post('/get', requireAuth, async (req, res) => {
@@ -85,6 +86,38 @@ router.post('/delete', requireAuth, async (req, res) => {
     res.status(200).json({ message: 'Notification deleted' });
   } catch (error) {
     console.error('Error in deleting notification:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// POST /api/notifications/setViewed
+router.post('/setViewed', requireAuth, async (req, res) => {
+  try {
+    const { notificationId } = req.body;
+    const userId = req.user._id;
+
+    // Find the user's notifications
+    let notifications = await Notification.findOne({ userId });
+
+    if (!notifications) {
+      return res.status(404).json({ message: 'Notifications not found' });
+    }
+
+    //Find the notification and set viewed to true
+    notifications.notifications.forEach((notification) => {
+      if (notification._id.toString() === notificationId) {
+        notification.viewed = true;
+        console.log('Notification viewed');
+      }
+    }
+    );
+
+    console.log(notifications);
+
+    await notifications.save();
+  }
+  catch (error) {
+    console.error('Error in setting notification to viewed:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 });
