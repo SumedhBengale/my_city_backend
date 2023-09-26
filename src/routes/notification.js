@@ -2,12 +2,16 @@ const express = require('express');
 const Notification = require('../models/Notifications');
 const router = express.Router();
 const { requireAuth } = require('../middlewares/authMiddleware');
-const Notifications = require('../models/Notifications');
 
 // GET /api/notifications
 router.post('/get', requireAuth, async (req, res) => {
   try {
     const { userId } = req.body;
+
+    //Check if userId is provided
+    if (!userId) {
+      return res.status(400).json({ message: 'User ID not provided' });
+    }
 
     // Retrieve the notifications for the user
     const notifications = await Notification.findOne({ userId });

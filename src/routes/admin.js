@@ -19,9 +19,9 @@ router.post('/checkAdmin', async (req, res) => {
     const { token } = req.body;
     console.log(token)
     try {
-        if(!token) return res.status(400).json({ message: 'Missing Token'});
+        if (!token) return res.status(400).json({ message: 'Missing Token' });
         //Find the user by their token
-        const jwt_User= jwt.verify(token, process.env.JWT_SECRET);
+        const jwt_User = jwt.verify(token, process.env.JWT_SECRET);
         //Get the user's type from the database
         const user = await User.findById(jwt_User.sub);
         console.log(user);
@@ -69,12 +69,12 @@ router.post('/resource/:id', requireAuth, async (req, res) => {
         let resource;
         if (resourceModel === Trip) {
             resource = await resourceModel.findById(id)
-            
+
             const residence = await findResidenceById(resource.residenceId);
             //place the residence in the residenceId field
             resource.residenceId = residence;
         } else {
-        resource = await resourceModel.findById(id);
+            resource = await resourceModel.findById(id);
         }
         let safeResource = resource;
         //If the resource is 'user' then remove password from the response
@@ -89,7 +89,7 @@ router.post('/resource/:id', requireAuth, async (req, res) => {
             return res.status(404).json({ message: `${typeOfResource} not found` });
         }
         console.log(safeResource)
-        return res.status(200).json({ resource:safeResource });
+        return res.status(200).json({ resource: safeResource });
     } catch (error) {
         console.log(error);
         return res.status(500).json({ message: 'Internal server error' });
@@ -101,7 +101,7 @@ router.post('/resource/set/:id', requireAuth, async (req, res) => {
     try {
         const { typeOfResource, id, data } = req.body;
         console.log(typeOfResource, id)
-        console.log("Data",data)
+        console.log("Data", data)
 
         let resourceModel;
 
@@ -141,93 +141,93 @@ router.post('/resource/set/:id', requireAuth, async (req, res) => {
 //Make routes to get all the Users, Wishlists, Chats depending on the Query the first route will be to get all the users
 router.post('/users', async (req, res) => {
     try {
-      const { query } = req.body;
-      console.log("Query",query)
-  
-      // Perform the search query on the database
-      const users = await User.find({
-        $or: [
-          { name: { $regex: query, $options: 'i' } },
-          { email: { $regex: query, $options: 'i' } },
-        ],
-      }).limit(10); // Limit the number of results to 10 for this example
-  
-      res.json(users);
-      console.log(users)
+        const { query } = req.body;
+        console.log("Query", query)
+
+        // Perform the search query on the database
+        const users = await User.find({
+            $or: [
+                { name: { $regex: query, $options: 'i' } },
+                { email: { $regex: query, $options: 'i' } },
+            ],
+        }).limit(10); // Limit the number of results to 10 for this example
+
+        res.json(users);
+        console.log(users)
     } catch (error) {
-      console.error('Error searching for users:', error);
-      res.status(500).json({ error: 'Error searching for users' });
+        console.error('Error searching for users:', error);
+        res.status(500).json({ error: 'Error searching for users' });
     }
-  });
+});
 
-  //Route to search for all the chats depending on the query
-    router.post('/chats', async (req, res) => {
-        try {
-            const { query } = req.body;
-            console.log("Query",query)
+//Route to search for all the chats depending on the query
+router.post('/chats', async (req, res) => {
+    try {
+        const { query } = req.body;
+        console.log("Query", query)
 
-            // Perform the search query on the database
-            let chats = await Chat.find({
-                //Search for anything that matches the query in the messages
-                $or: [
-                    { messages: { $elemMatch: { message: { $regex: query, $options: 'i' } } } },
-                ],
-            }).populate('userId');
+        // Perform the search query on the database
+        let chats = await Chat.find({
+            //Search for anything that matches the query in the messages
+            $or: [
+                { messages: { $elemMatch: { message: { $regex: query, $options: 'i' } } } },
+            ],
+        }).populate('userId');
+        //Add a userName field to each chat, get the userName from the userId
+        let newChats = chats;
+        newChats = newChats.map((chat) => {
             //Add a userName field to each chat, get the userName from the userId
-            let newChats = chats;
-            newChats = newChats.map((chat) => {
-                //Add a userName field to each chat, get the userName from the userId
-                const userName = chat.userId.userName;
-                return { ...chat._doc, userName };
-            });
+            const userName = chat.userId.userName;
+            return { ...chat._doc, userName };
+        });
 
-            res.json(newChats);
-            console.log(newChats)
-        } catch (error) {
-            console.error('Error searching for chats:', error);
-            res.status(500).json({ error: 'Error searching for chats' });
-        }
-    });
+        res.json(newChats);
+        console.log(newChats)
+    } catch (error) {
+        console.error('Error searching for chats:', error);
+        res.status(500).json({ error: 'Error searching for chats' });
+    }
+});
 
-    //route to get all trips depending on the query
-    router.post('/trips', async (req, res) => {
-        try {
-            const { userId } = req.body;
-            console.log("Query",userId)
+//route to get all trips depending on the query
+router.post('/trips', async (req, res) => {
+    try {
+        const { userId } = req.body;
+        console.log("Query", userId)
 
-            // Find all the trips of the user, and populate the residenceId field
-            let trips = await Trip.find({ userId })
-            
-            
-            res.status(200).json(trips);
-            console.log(trips)
-        } catch (error) {
-            console.error('Error searching for Trips:', error);
-            res.status(500).json({ error: 'Error searching for Trips' });
-        }
-    });
+        // Find all the trips of the user, and populate the residenceId field
+        let trips = await Trip.find({ userId })
+
+
+        res.status(200).json(trips);
+        console.log(trips)
+    } catch (error) {
+        console.error('Error searching for Trips:', error);
+        res.status(500).json({ error: 'Error searching for Trips' });
+    }
+});
 
 
 //Get the latest reviews from all the users
 router.post('/reviews', async (req, res) => {
     try {
         const { query, rating } = req.body;
-        console.log("Query",query)
+        console.log("Query", query)
         console.log(rating)
         let trips;
-        if(rating === ''){
+        if (rating === '') {
             trips = await Trip.find({
                 $and: [
                     { review: { $regex: query, $options: 'i' } },
                 ],
-                })
-        }else{
+            })
+        } else {
             trips = await Trip.find({
                 $and: [
                     { review: { $regex: query, $options: 'i' } },
                     { rating: rating },
                 ],
-                })
+            })
         }
 
         res.json(trips);
@@ -243,10 +243,10 @@ router.post('/reviews', async (req, res) => {
 router.post('/wishlist', async (req, res) => {
     try {
         const { userId } = req.body;
-        console.log("Query",userId)
+        console.log("Query", userId)
 
         // Perform the search query on the database
-        let wishlists = await Wishlist.find({userId})
+        let wishlists = await Wishlist.find({ userId })
 
 
         res.json(wishlists);
@@ -297,7 +297,7 @@ router.post('/deleteContactRequest', requireAuth, async (req, res) => {
     try {
         const { id } = req.body;
         console.log(id)
-        
+
         const deletedContactRequest = await ContactRequest.findByIdAndDelete(id);
         console.log(deletedContactRequest)
 

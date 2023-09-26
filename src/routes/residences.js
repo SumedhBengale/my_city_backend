@@ -103,7 +103,7 @@ router.get('/getCities', async (req, res) => {
 });
 
 //getQuote
-router.post('/getQuote', requireAuth, async (req, res) => {
+router.post('/getQuote', async (req, res) => {
   try {
     const { residenceId, checkInDate, checkOutDate, guestCount, userId, coupon } = req.body;
 

@@ -5,9 +5,10 @@ const { requireAuth } = require('../middlewares/authMiddleware');
 const { instantReservation, fetchResidenceById, fetchQuoteById } = require("../middlewares/guestyMiddleware");
 const Trip = require("../models/Trip");
 const { addNotification } = require("../middlewares/notificationMiddleware");
+const jwt_decode = require("jwt-decode");
 
 
-router.post("/create-payment-intent", requireAuth, async (req, res) => {
+router.post("/create-payment-intent", async (req, res) => {
   const quote = req.body;
   console.log("QUOTE", quote)
   const amount = quote.rates.ratePlans[0].ratePlan.money.hostPayout;
@@ -26,8 +27,11 @@ router.post("/create-payment-intent", requireAuth, async (req, res) => {
   });
 });
 
-router.post("/payment/success", requireAuth, async (req, res) => {
-  const { paymentIntent, paymentStatus, quoteId } = req.body;
+router.post("/payment/success", async (req, res) => {
+  const { paymentIntent, paymentStatus, quoteId, userToken } = req.body;
+  //If token is not null decode it and get the sub
+  const userId = userToken ? jwt_decode(userToken).sub : null;
+
 
   if (paymentStatus === "succeeded") {
     //Get the payment method from stripe
@@ -44,19 +48,24 @@ router.post("/payment/success", requireAuth, async (req, res) => {
       console.log("RESPONSE", response)
       const reservationId = response._id;
       const residence = await fetchResidenceById(quote.unitTypeId);
+      //If user is authenticated then add the reservation to the user's upcoming trips
       const upcomingTrip = new Trip({
         reservationId: reservationId,
-        userId: req.user._id,
+        userId: userId ? userId : null,
         residence: residence,
         checkInDate: quote.checkInDateLocalized,
         checkOutDate: quote.checkOutDateLocalized,
         paymentIntent: intent.id,
       });
       await upcomingTrip.save();
+      if (userId !== null) {
+        //Also add a notification to the user
+        addNotification(userId, `Your booking for ${residence.title} has been confirmed!`);
+        console.log("SAVED TRIP AND ADDED NOTIFICATION")
+      }
 
-      addNotification(req.user._id, `Your booking for ${residence.title} has been confirmed!`);
 
-      return res.send({ message: "Payment successful", response: response });
+      return res.send({ message: "Payment successful", response: response, residence, paymentIntent, reservationId });
     }).catch((err) => {
       console.log("ERROR", err)
       return res.send({ message: "Error", response: err });

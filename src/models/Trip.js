@@ -4,7 +4,6 @@ const TripSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true,
   },
   residence: {
     type: Object,
@@ -33,7 +32,7 @@ const TripSchema = new mongoose.Schema({
   rating: {
     type: Number,
     required: false,
-    enum : [1, 2, 3, 4, 5, 6 ,7 ,8 ,9 ,10],
+    enum: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
   },
 });
 
