@@ -4,6 +4,8 @@ const Joi = require('joi');
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const { requireAuth, verifyEmail, resetPassword } = require('../middlewares/authMiddleware');
+const passport = require('passport');
+const axios = require('axios');
 
 
 const router = express.Router();
@@ -18,6 +20,122 @@ const signupSchema = Joi.object({
 const loginSchema = Joi.object({
   email: Joi.string().email().required(),
   password: Joi.string().required().min(6),
+});
+
+router.get('/client-id', (req, res) => {
+  res.status(200).json({ googleClientId: process.env.GOOGLE_CLIENT_ID, facebookAppId: process.env.FACEBOOK_APP_ID });
+});
+
+router.post('/facebook', async (req, res) => {
+  try {
+    const { data } = req.body; //data contains access_token and user_id, which we will use to fetch user information from facebook
+
+    const accessToken = data.authResponse.accessToken;
+    const userId = data.authResponse.userID;
+    console.log(data)
+
+    // Use the access token to fetch user information from Facebook
+    const { data: userData } = await axios.get(`https://graph.facebook.com/${userId}?fields=id,name,email&access_token=${accessToken}`);
+
+    // Check if the user already exists in your database based on the Facebook ID
+    const existingUser = await User.findOne({ facebookId: userData.id });
+
+    if (existingUser) {
+      const payload = { sub: existingUser._id };
+      const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1y' });
+      // User already exists, return a JWT token
+      res.status(200).json({ message: 'User found', token: token, userId: existingUser._id, userType: existingUser.type, user: existingUser });
+    }
+    else {
+      // User doesn't exist, you can create a new user and return a JWT token or any other response
+
+      //If the email already exists, return an error
+      if (userData.email) {
+        const existingEmail = await User.findOne({ email: userData.email });
+        if (existingEmail) {
+          return res.status(409).json({ message: 'Email already exists' });
+        }
+      }
+
+      const newUser = new User({
+        authType: 'facebook',
+        facebookId: userData.id,
+        email: userData.email ? userData.email : '',
+        userName: userData.name,
+        isVerified: true,
+        type: 'user',
+        // Add other user properties as needed
+      });
+
+      //generate jwt token
+      const payload = { sub: newUser._id };
+      const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1y' });
+
+      await newUser.save();
+      res.status(200).json({ message: 'User created', token: token, userId: newUser._id, userType: newUser.type, user: newUser });
+    }
+  }
+  catch (error) {
+    console.error('Facebook login error:', error);
+    res.status(500).json({ message: 'Facebook login error' });
+  }
+});
+
+router.post('/google', async (req, res) => {
+  try {
+    const { code } = req.body;
+    console.log(code)
+
+    const accessToken = code.access_token;
+
+    // Use the access token to fetch user information from Google
+    const { data: userData } = await axios.get('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    console.log(userData)
+    // Check if the user already exists in your database based on the Google ID
+    const existingUser = await User.findOne({ googleId: userData.sub });
+
+    if (existingUser) {
+      const payload = { sub: existingUser._id };
+      const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1y' });
+      // User already exists, return a JWT token
+      res.status(200).json({ message: 'User found', token: token, userId: existingUser._id, userType: existingUser.type, user: existingUser });
+    } else {
+
+      //If the email already exists, return an error
+      if (userData.email) {
+        const existingEmail = await User.findOne({ email: userData.email });
+        if (existingEmail) {
+          return res.status(409).json({ message: 'Email already exists' });
+        }
+      }
+
+      // User doesn't exist, you can create a new user and return a JWT token or any other response
+      const newUser = new User({
+        authType: 'google',
+        googleId: userData.sub,
+        email: userData.email,
+        userName: userData.name,
+        isVerified: true,
+        type: 'user',
+        // Add other user properties as needed
+      });
+
+      //generate jwt token
+      const payload = { sub: newUser._id };
+      const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1y' });
+
+      await newUser.save();
+      res.status(200).json({ message: 'User created', token: token, userId: newUser._id, userType: newUser.type, user: newUser });
+    }
+  } catch (error) {
+    console.error('Google login error:', error);
+    res.status(500).json({ message: 'Google login error' });
+  }
 });
 
 // POST /api/signup
@@ -94,6 +212,11 @@ router.post('/login', async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
+    }
+
+    //If authType is not local, return an error
+    if (user.authType !== 'local') {
+      return res.status(404).json({ message: 'Invalid credentials' });
     }
 
     // Compare passwords

@@ -4,6 +4,7 @@ const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const { requireAuth } = require('../middlewares/authMiddleware');
 const { instantReservation, fetchResidenceById, fetchQuoteById } = require("../middlewares/guestyMiddleware");
 const Trip = require("../models/Trip");
+const User = require("../models/User");
 const { addNotification } = require("../middlewares/notificationMiddleware");
 const jwt_decode = require("jwt-decode");
 
@@ -24,6 +25,7 @@ router.post("/create-payment-intent", async (req, res) => {
 
   res.send({
     clientSecret: paymentIntent.client_secret,
+    paymentIntentId: paymentIntent,
   });
 });
 
@@ -36,13 +38,29 @@ router.post("/payment/success", async (req, res) => {
   if (paymentStatus === "succeeded") {
     //Get the payment method from stripe
     const intent = await stripe.paymentIntents.retrieve(paymentIntent);
-    console.log(intent)
+    console.log("PaymentIntent", intent)
     const paymentMethod = await stripe.paymentMethods.retrieve(intent.payment_method);
+    console.log("PaymentMethod", paymentMethod)
     const quote = await fetchQuoteById(quoteId);
+    let email = ''
+    if (userId === null) {
+      email = paymentMethod.billing_details.email;
+    } else {
+      const user = await User.findById(userId);
+      console.log("USER", user)
+      //If the authType is 'facebook' then the email may or may not be present, so use the email from the payment method
+      if (user.authType === 'facebook') {
+        email = paymentMethod.billing_details.email;
+      } else {
+        const userEmail = user.email;
+        email = userEmail;
+      }
+    }
     const guest = {
       firstName: paymentMethod.billing_details.name.split(" ")[0],
-      lastName: paymentMethod.billing_details.name.split(" ")[1],
-      email: paymentMethod.billing_details.email,
+      lastName: paymentMethod.billing_details.name.split(" ")[1] ? paymentMethod.billing_details.name.split(" ")[1] : "",
+      email: email,
+      phone: paymentMethod.billing_details.phone,
     }
     await instantReservation(quote._id, quote.rates.ratePlans[0].ratePlan._id, paymentMethod.id, guest).then(async (response) => {
       console.log("RESPONSE", response)

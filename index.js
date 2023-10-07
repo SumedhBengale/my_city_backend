@@ -17,6 +17,8 @@ const enquiryRoutes = require('./src/routes/enquiry')
 const stripeRoutes = require('./src/routes/stripe');
 const { fetchAccessToken } = require('./src/middlewares/tokenManager');
 const cron = require('node-cron');
+const GoogleStrategy = require('passport-google-oauth20').Strategy;
+const User = require('./src/models/User');
 
 
 const app = express();
@@ -27,10 +29,48 @@ app.use(cors());
 // Connect to MongoDB
 connectToDatabase();
 
+passport.use(
+  new GoogleStrategy(
+    {
+      clientID: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_SECRET,
+      callbackURL: '/auth/google/callback', // This URL should match the one you set in the Google Developer Console
+    },
+    async (accessToken, refreshToken, profile, done) => {
+      console.log('Access Token: ', accessToken);
+      try {
+        // Find or create a user based on the Google profile
+        const existingUser = await User.findOne({ googleId: profile.id });
+
+        if (existingUser) {
+          console.log('User already exists in the database');
+          return done(null, existingUser);
+        }
+
+        // Create a new user if one doesn't exist
+        const newUser = new User({
+          googleId: profile.id,
+          email: profile.emails[0].value,
+          userName: profile.displayName,
+          type: 'user',
+          // Add other user properties as needed
+        });
+        console.log('New user created in the database')
+
+        await newUser.save();
+        done(null, newUser);
+      } catch (error) {
+        done(error, null);
+      }
+    }
+  )
+);
+
 // Middleware setup
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(passport.initialize());
+
 
 //Run this code every 20 hours, use cron
 

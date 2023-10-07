@@ -2,7 +2,6 @@
 const passport = require('passport');
 const axios = require('axios');
 const nodemailer = require('nodemailer');
-
 const requireAuth = passport.authenticate('jwt', { session: false, });
 
 
@@ -86,4 +85,4 @@ const resetPassword = (email, passwordToken) => {
 }
 
 
-module.exports = { requireAuth, verifyEmail, resetPassword };
+module.exports = { requireAuth, verifyEmail, resetPassword, passport };

@@ -3,27 +3,43 @@
 const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
+    authType: {
+        type: String,
+        default: "local",
+        enum: ["local", "google", "facebook"]
+    },
+    facebookId: {
+        type: String,
+        required: false,
+    },
+    googleId: {
+        type: String,
+        required: false,
+    },
     userName: {
         type: String,
         required: true,
         min: 3,
         max: 20,
-        unique: true
+        unique: false
     },
     email: {
         type: String,
-        required: true,
+        required: false,
         max: 50,
         unique: true
     },
     password: {
         type: String,
-        required: true,
+        required:
+            function () {
+                return this.authType === "local";
+            },
         min: 6
     },
     verificationToken: {
         type: String,
-        required: true,
+        required: function () { return this.authType === "local"; }
     },
     passwordResetToken: {
         type: String,

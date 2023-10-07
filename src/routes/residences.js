@@ -6,7 +6,7 @@ const Residence = require('../models/Residence');
 const { requireAuth } = require('../middlewares/authMiddleware');
 const UpcomingTrip = require('../models/Trip');
 const { addNotification } = require('../middlewares/notificationMiddleware');
-const { fetchResidences, fetchResidenceById, fetchFinancials, fetchAvailability, fetchCities, fetchQuote } = require('../middlewares/guestyMiddleware');
+const { fetchResidences, fetchResidenceById, fetchFinancials, fetchAvailability, fetchCities, fetchQuote, retrieveQuote } = require('../middlewares/guestyMiddleware');
 const { format } = require('date-fns');
 const fetchAddresses = require('../middlewares/postCodeMiddleware');
 
@@ -115,6 +115,25 @@ router.post('/getQuote', async (req, res) => {
     console.log("coupon", coupon)
 
     fetchQuote(residenceId, checkInDate, checkOutDate, guestCount, coupon).then((quote) => {
+      console.log("Quote: ", quote);
+      res.status(200).json({ quote: quote, status: 200 });
+    }).catch((err) => {
+      console.error(err);
+      res.status(500).json({ message: 'Internal server error' });
+    })
+  } catch (error) {
+    console.error('Error in getQuote:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+//retrive a quote from id
+router.post('/retrieveQuote', async (req, res) => {
+  try {
+    const { id } = req.body;
+    console.log("id", id)
+
+    retrieveQuote(id).then((quote) => {
       console.log("Quote: ", quote);
       res.status(200).json({ quote: quote, status: 200 });
     }).catch((err) => {

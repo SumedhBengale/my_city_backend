@@ -12,6 +12,7 @@ const fetchResidences = async ({ filterDataString, luxe, limit }) => {
         filterData = JSON.parse(filterDataString);
         console.log("Filter data", filterData)
         console.log("Luxe: ", luxe)
+        console.log(typeof (luxe))
     } else {
         filterData = null;
     }
@@ -83,7 +84,7 @@ const fetchResidences = async ({ filterDataString, luxe, limit }) => {
             }
 
         }
-        if (luxe) {
+        if (luxe === 'true') {
             filter += `&tags=luxe`;
         }
         if (limit) {
@@ -160,6 +161,28 @@ const fetchQuote = async (residence, startDate, endDate, guestCount, coupon) => 
         return response.data;
     } catch (err) {
         console.log(err)
+        //If the status is 401, then console.log the error and return the status
+        if (err.response.status === 401) {
+            await fetchAccessToken();
+        } else {
+            return err;
+        }
+    }
+}
+
+//Retrieve Quote from id
+const retrieveQuote = async (id) => {
+    const GUESTY_ACCESS_TOKEN = fs.readFileSync(tokenFilePath, 'utf8');
+    try {
+        const response = await axios.get(process.env.GUESTY_BASE_URL + '/reservations/quotes/' + id, {
+            headers: {
+                'Authorization': `Bearer ${GUESTY_ACCESS_TOKEN}`,
+                'Accept': 'application/json; charset=utf-8',
+                'Content-Type': 'application/json',
+            }
+        });
+        return response.data;
+    } catch (err) {
         //If the status is 401, then console.log the error and return the status
         if (err.response.status === 401) {
             await fetchAccessToken();
@@ -294,4 +317,5 @@ module.exports = {
     fetchQuote,
     instantReservation,
     fetchQuoteById,
+    retrieveQuote
 };
